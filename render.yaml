@@ -53,5 +53,3 @@ services:
     dockerfilePath: ./frontend/Dockerfile.web
     plan: free
     healthCheckPath: /health
-    dockerBuildArgs:
-      API_BASE_URL: https://wrestletech-api.onrender.com
