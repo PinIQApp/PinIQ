@@ -61,7 +61,7 @@ from app.services.weight_planning import calculate_plan
 
 
 def seed_demo_data(db: Session) -> None:
-    if db.query(User).first():
+    if db.query(User).filter(User.email == "coach@wrestlingos.com").first():
         return
 
     coach = User(

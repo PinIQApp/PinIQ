@@ -27,7 +27,7 @@ services:
       - key: AUTO_CREATE_SCHEMA
         value: "false"
       - key: SEED_DEMO_DATA_ON_STARTUP
-        value: "false"
+        value: "true"
       - key: MEDIA_DIR
         value: media
       - key: STORAGE_PROVIDER
