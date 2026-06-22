@@ -1,0 +1,68 @@
+{
+    "name": "Pin IQ",
+    "short_name": "Pin IQ",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#050B14",
+    "theme_color": "#050B14",
+    "description": "Pin IQ helps wrestling programs run communication, roster, weights, nutrition, recruiting, and workout tools.",
+    "orientation": "any",
+    "categories": [
+        "sports",
+        "productivity",
+        "health"
+    ],
+    "prefer_related_applications": false,
+    "shortcuts": [
+        {
+            "name": "Program Hub",
+            "short_name": "Hub",
+            "description": "Open the wrestling operations tool hub.",
+            "url": "./?shortcut=hub",
+            "icons": [
+                {
+                    "src": "icons/Icon-192.png",
+                    "sizes": "192x192",
+                    "type": "image/png"
+                }
+            ]
+        },
+        {
+            "name": "Stance Workout",
+            "short_name": "Workout",
+            "description": "Open stance and motion workout callouts.",
+            "url": "./?shortcut=workout",
+            "icons": [
+                {
+                    "src": "icons/Icon-192.png",
+                    "sizes": "192x192",
+                    "type": "image/png"
+                }
+            ]
+        }
+    ],
+    "icons": [
+        {
+            "src": "icons/Icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-maskable-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "icons/Icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}
