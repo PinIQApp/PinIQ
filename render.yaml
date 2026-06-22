@@ -21,9 +21,9 @@ services:
       - key: DATABASE_URL
         sync: false
       - key: FRONTEND_ORIGIN
-        value: https://wrestletech-beta.onrender.com
+        value: https://wrestletech-beta-1kpr.onrender.com
       - key: CORS_ORIGINS
-        value: https://wrestletech-beta.onrender.com
+        value: https://wrestletech-beta-1kpr.onrender.com
       - key: AUTO_CREATE_SCHEMA
         value: "false"
       - key: SEED_DEMO_DATA_ON_STARTUP

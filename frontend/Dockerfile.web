@@ -1,6 +1,6 @@
 FROM ghcr.io/cirruslabs/flutter:stable AS build
 
-ARG API_BASE_URL=https://wrestletech-api.onrender.com
+ARG API_BASE_URL=https://wrestletech-api-1kpr.onrender.com
 WORKDIR /app
 COPY frontend/pubspec.* ./
 RUN flutter pub get
