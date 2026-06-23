@@ -79,38 +79,172 @@ class _HomeDashboardShellState extends State<HomeDashboardShell> {
     ];
 
     final safeIndex = currentIndex.clamp(0, tabs.length - 1);
+    final width = MediaQuery.of(context).size.width;
+    final isDesktop = width >= 980;
 
     return Scaffold(
       body: AppShell(
-        child: Column(
-          children: [
-            AppHeader(
-              team: team,
-              title: team?.name ?? 'Pin IQ',
-              subtitle:
-                  '${team?.mascotName ?? 'Program'} • ${_roleLabel(user?.role)}',
-              trailing: IconButton(
-                tooltip: 'Logout',
-                onPressed: () => context.read<AppState>().logout(),
-                icon: const Icon(
-                  Icons.logout_rounded,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ),
-            Expanded(child: tabs[safeIndex].body),
-            AppBottomNav(
-              selectedIndex: safeIndex,
-              onSelected: (index) => setState(() => currentIndex = index),
-              items: tabs
-                  .map(
-                    (tab) => AppBottomNavItem(
-                      icon: tab.icon,
-                      activeIcon: tab.activeIcon,
-                      label: tab.label,
+        child: isDesktop
+            ? Row(
+                children: [
+                  _DesktopNavRail(
+                    selectedIndex: safeIndex,
+                    onSelected: (index) => setState(() => currentIndex = index),
+                    items: tabs,
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        AppHeader(
+                          team: team,
+                          title: team?.name ?? 'Pin IQ',
+                          subtitle:
+                              '${team?.mascotName ?? 'Program'} • ${_roleLabel(user?.role)}',
+                          trailing: IconButton(
+                            tooltip: 'Logout',
+                            onPressed: () => context.read<AppState>().logout(),
+                            icon: const Icon(
+                              Icons.logout_rounded,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                        Expanded(child: tabs[safeIndex].body),
+                      ],
                     ),
-                  )
-                  .toList(),
+                  ),
+                ],
+              )
+            : Column(
+                children: [
+                  AppHeader(
+                    team: team,
+                    title: team?.name ?? 'Pin IQ',
+                    subtitle:
+                        '${team?.mascotName ?? 'Program'} • ${_roleLabel(user?.role)}',
+                    trailing: IconButton(
+                      tooltip: 'Logout',
+                      onPressed: () => context.read<AppState>().logout(),
+                      icon: const Icon(
+                        Icons.logout_rounded,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                  Expanded(child: tabs[safeIndex].body),
+                  AppBottomNav(
+                    selectedIndex: safeIndex,
+                    onSelected: (index) => setState(() => currentIndex = index),
+                    items: tabs
+                        .map(
+                          (tab) => AppBottomNavItem(
+                            icon: tab.icon,
+                            activeIcon: tab.activeIcon,
+                            label: tab.label,
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+}
+
+class _DesktopNavRail extends StatelessWidget {
+  const _DesktopNavRail({
+    required this.selectedIndex,
+    required this.onSelected,
+    required this.items,
+  });
+
+  final int selectedIndex;
+  final ValueChanged<int> onSelected;
+  final List<_AppTab> items;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
+    return Container(
+      width: 88,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.xs,
+        vertical: AppSpacing.md,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.62),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.64)),
+      ),
+      child: Column(
+        children: [
+          Image.asset(
+            'assets/images/wrestletech_icon.png',
+            width: 42,
+            height: 42,
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          for (var i = 0; i < items.length; i++) ...[
+            _DesktopNavItem(
+              item: items[i],
+              selected: i == selectedIndex,
+              accent: accent,
+              onTap: () => onSelected(i),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+          ],
+          const Spacer(),
+        ],
+      ),
+    );
+  }
+}
+
+class _DesktopNavItem extends StatelessWidget {
+  const _DesktopNavItem({
+    required this.item,
+    required this.selected,
+    required this.accent,
+    required this.onTap,
+  });
+
+  final _AppTab item;
+  final bool selected;
+  final Color accent;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+        decoration: BoxDecoration(
+          color: selected ? accent.withValues(alpha: 0.16) : Colors.transparent,
+          borderRadius: BorderRadius.circular(18),
+          border: selected
+              ? Border.all(color: accent.withValues(alpha: 0.22))
+              : null,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              selected ? item.activeIcon : item.icon,
+              color: selected ? accent : AppColors.textSecondary,
+              size: 22,
+            ),
+            const SizedBox(height: AppSpacing.xxs),
+            Text(
+              item.label,
+              style: AppTextStyles.navLabel.copyWith(
+                color: selected ? accent : AppColors.textSecondary,
+              ),
             ),
           ],
         ),
@@ -167,17 +301,16 @@ class _DashboardHomeView extends StatelessWidget {
     return ListView(
       padding: EdgeInsets.zero,
       children: [
-        HeroProgramCard(
-          team: team,
-          title: team?.name ?? 'Pin IQ',
-          subtitle:
-              '${team?.mascotName ?? 'Team'} • ${appState.user?.fullName ?? 'Staff'}',
-          description: team?.tagline?.trim().isNotEmpty == true
-              ? team!.tagline!.trim()
-              : 'Run your wrestling program with one clean dashboard for updates, roster, weights, and staff tools.',
-          badge: _roleLabel(appState.user?.role),
-          primaryAction: ElevatedButton.icon(
-            onPressed: () {
+        if (width >= 980)
+          _DesktopHomeSummary(
+            title: team?.name ?? 'Pin IQ',
+            subtitle:
+                '${team?.mascotName ?? 'Team'} • ${appState.user?.fullName ?? 'Staff'}',
+            badge: _roleLabel(appState.user?.role),
+            approvedCount: approvedCount,
+            unreadThreads: unreadThreads,
+            alertsCount: alerts.length,
+            onPrimary: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => canManageProgram
@@ -188,21 +321,7 @@ class _DashboardHomeView extends StatelessWidget {
                 ),
               );
             },
-            icon: Icon(
-              canManageProgram
-                  ? Icons.campaign_rounded
-                  : Icons.monitor_weight_outlined,
-            ),
-            label: Text(
-              canManageProgram
-                  ? 'Send update'
-                  : isParent
-                      ? 'View athlete plan'
-                      : 'View weight plan',
-            ),
-          ),
-          secondaryAction: OutlinedButton.icon(
-            onPressed: () {
+            onSecondary: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => canManageProgram
@@ -211,12 +330,64 @@ class _DashboardHomeView extends StatelessWidget {
                 ),
               );
             },
-            icon: Icon(
-              canManageProgram ? Icons.groups_2_rounded : Icons.forum_rounded,
+            primaryLabel: canManageProgram
+                ? 'Send update'
+                : isParent
+                    ? 'View athlete plan'
+                    : 'View weight plan',
+            secondaryLabel: canManageProgram ? 'Open team' : 'Open chat',
+          )
+        else
+          HeroProgramCard(
+            team: team,
+            title: team?.name ?? 'Pin IQ',
+            subtitle:
+                '${team?.mascotName ?? 'Team'} • ${appState.user?.fullName ?? 'Staff'}',
+            description: team?.tagline?.trim().isNotEmpty == true
+                ? team!.tagline!.trim()
+                : 'Run your wrestling program with one clean dashboard for updates, roster, weights, and staff tools.',
+            badge: _roleLabel(appState.user?.role),
+            primaryAction: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => canManageProgram
+                        ? const AnnouncementsScreen()
+                        : isParent
+                            ? const ParentWeightViewScreen()
+                            : const AthleteWeightPlanScreen(),
+                  ),
+                );
+              },
+              icon: Icon(
+                canManageProgram
+                    ? Icons.campaign_rounded
+                    : Icons.monitor_weight_outlined,
+              ),
+              label: Text(
+                canManageProgram
+                    ? 'Send update'
+                    : isParent
+                        ? 'View athlete plan'
+                        : 'View weight plan',
+              ),
             ),
-            label: Text(canManageProgram ? 'Open team' : 'Open chat'),
+            secondaryAction: OutlinedButton.icon(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => canManageProgram
+                        ? const TeamMembersScreen()
+                        : const MessageThreadsScreen(),
+                  ),
+                );
+              },
+              icon: Icon(
+                canManageProgram ? Icons.groups_2_rounded : Icons.forum_rounded,
+              ),
+              label: Text(canManageProgram ? 'Open team' : 'Open chat'),
+            ),
           ),
-        ),
         const SizedBox(height: AppSpacing.md),
         _CoachCommandDeck(
           unreadThreads: unreadThreads,
@@ -1124,6 +1295,116 @@ class _ProgramToolsView extends StatelessWidget {
   }
 }
 
+class _DesktopHomeSummary extends StatelessWidget {
+  const _DesktopHomeSummary({
+    required this.title,
+    required this.subtitle,
+    required this.badge,
+    required this.approvedCount,
+    required this.unreadThreads,
+    required this.alertsCount,
+    required this.primaryLabel,
+    required this.secondaryLabel,
+    required this.onPrimary,
+    required this.onSecondary,
+  });
+
+  final String title;
+  final String subtitle;
+  final String badge;
+  final int approvedCount;
+  final int unreadThreads;
+  final int alertsCount;
+  final String primaryLabel;
+  final String secondaryLabel;
+  final VoidCallback onPrimary;
+  final VoidCallback onSecondary;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.md,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceElevated.withValues(alpha: 0.58),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.62)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 2,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: AppSpacing.xs,
+                  runSpacing: AppSpacing.xxs,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(subtitle, style: AppTextStyles.caption),
+                    _MiniStatusPill(label: badge, color: accent),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.sectionTitle.copyWith(fontSize: 24),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.lg),
+          _InlineMetric(label: 'Roster', value: '$approvedCount'),
+          _InlineMetric(label: 'Unread', value: '$unreadThreads'),
+          _InlineMetric(label: 'Alerts', value: '$alertsCount'),
+          const SizedBox(width: AppSpacing.lg),
+          ElevatedButton(onPressed: onPrimary, child: Text(primaryLabel)),
+          const SizedBox(width: AppSpacing.sm),
+          OutlinedButton(onPressed: onSecondary, child: Text(secondaryLabel)),
+        ],
+      ),
+    );
+  }
+}
+
+class _InlineMetric extends StatelessWidget {
+  const _InlineMetric({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 82,
+      margin: const EdgeInsets.only(right: AppSpacing.sm),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xs,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.bg.withValues(alpha: 0.22),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.58)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(value, style: AppTextStyles.bodyStrong),
+          Text(label, style: AppTextStyles.caption),
+        ],
+      ),
+    );
+  }
+}
+
 class _TodayCard extends StatelessWidget {
   const _TodayCard({
     required this.title,
@@ -1260,7 +1541,7 @@ class _CoachCommandDeck extends StatelessWidget {
               ? phone
                   ? 2.35
                   : 2.6
-              : 2.35,
+              : 3.35,
           children: cards,
         );
       },
@@ -1318,12 +1599,15 @@ class _CoachCommandCard extends StatelessWidget {
           Expanded(
             child: Text(
               note,
-              maxLines: isCompact ? 3 : 4,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: AppTextStyles.body,
             ),
           ),
-          TextButton(onPressed: onTap, child: const Text('Open')),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(onPressed: onTap, child: const Text('Open')),
+          ),
         ],
       ),
     );

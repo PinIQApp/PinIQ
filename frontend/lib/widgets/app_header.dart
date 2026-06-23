@@ -30,11 +30,10 @@ class AppHeader extends StatelessWidget {
     final primary = Theme.of(context).colorScheme.primary;
 
     return Container(
-      margin:
-          EdgeInsets.only(bottom: isCompact ? AppSpacing.sm : AppSpacing.md),
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       padding: EdgeInsets.symmetric(
-        horizontal: isCompact ? AppSpacing.md : AppSpacing.lg,
-        vertical: isCompact ? AppSpacing.sm : AppSpacing.md,
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
       ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -45,7 +44,7 @@ class AppHeader extends StatelessWidget {
             AppColors.surfaceElevated.withValues(alpha: 0.58),
           ],
         ),
-        borderRadius: BorderRadius.circular(isCompact ? 18 : 24),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: AppColors.border.withValues(alpha: 0.74)),
         boxShadow: [
           BoxShadow(
@@ -73,10 +72,10 @@ class AppHeader extends StatelessWidget {
                   ),
                 ],
               ),
-              padding: const EdgeInsets.all(4),
-              child: SchoolLogoBadge(team: team, radius: 24),
+              padding: const EdgeInsets.all(3),
+              child: SchoolLogoBadge(team: team, radius: 18),
             ),
-            const SizedBox(width: AppSpacing.md),
+            const SizedBox(width: AppSpacing.sm),
           ],
           Expanded(
             child: Padding(
@@ -123,17 +122,17 @@ class AppHeader extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 3),
                   Text(
                     title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: AppTextStyles.sectionTitle.copyWith(
-                      fontSize: isCompact ? 20 : 24,
+                      fontSize: isCompact ? 20 : 21,
                       height: 1.08,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
                   Text(
                     subtitle,
                     maxLines: 2,
