@@ -26,14 +26,14 @@ class QuickActionTile extends StatelessWidget {
     final width = MediaQuery.of(context).size.width;
     final isCompact = width < 430;
     return InkWell(
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(16),
       onTap: onTap,
       child: Ink(
         padding: EdgeInsets.all(isCompact ? AppSpacing.sm : AppSpacing.md),
         decoration: BoxDecoration(
-          color: AppColors.surface.withValues(alpha: 0.80),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppColors.border),
+          color: AppColors.surface.withValues(alpha: 0.66),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border.withValues(alpha: 0.68)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.08),
@@ -46,15 +46,15 @@ class QuickActionTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              width: isCompact ? 30 : 34,
-              height: isCompact ? 30 : 34,
+              width: isCompact ? 30 : 32,
+              height: isCompact ? 30 : 32,
               decoration: BoxDecoration(
                 color: accent.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(11),
               ),
               child: Icon(icon, color: accent, size: 17),
             ),
-            SizedBox(height: isCompact ? AppSpacing.sm : AppSpacing.md),
+            SizedBox(height: isCompact ? AppSpacing.xs : AppSpacing.sm),
             Text(
               title,
               maxLines: 2,

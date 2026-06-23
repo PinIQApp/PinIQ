@@ -27,7 +27,7 @@ class ProgramToolTile extends StatelessWidget {
     final accent = color ?? Theme.of(context).colorScheme.primary;
     final isCompact = MediaQuery.of(context).size.width < 430;
     return InkWell(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(14),
       onTap: onTap,
       child: Ink(
         padding: EdgeInsets.symmetric(
@@ -35,9 +35,9 @@ class ProgramToolTile extends StatelessWidget {
           vertical: AppSpacing.sm,
         ),
         decoration: BoxDecoration(
-          color: AppColors.surface.withValues(alpha: 0.72),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border),
+          color: AppColors.surface.withValues(alpha: 0.64),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.border.withValues(alpha: 0.68)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.08),
@@ -50,11 +50,11 @@ class ProgramToolTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Container(
-              width: isCompact ? 36 : 40,
-              height: isCompact ? 36 : 40,
+              width: isCompact ? 34 : 38,
+              height: isCompact ? 34 : 38,
               decoration: BoxDecoration(
                 color: accent.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(11),
               ),
               child: Icon(icon, color: accent, size: 18),
             ),

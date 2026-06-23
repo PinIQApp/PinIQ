@@ -36,18 +36,18 @@ class AppBottomNav extends StatelessWidget {
 
     return Container(
       margin: EdgeInsets.only(
-        top: isCompact ? AppSpacing.md : AppSpacing.lg,
-        bottom: isCompact ? AppSpacing.sm : AppSpacing.lg,
+        top: isCompact ? AppSpacing.sm : AppSpacing.md,
+        bottom: isCompact ? AppSpacing.xs : AppSpacing.sm,
       ),
       padding: EdgeInsets.all(isCompact ? 4 : 6),
       decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.96),
-        borderRadius: BorderRadius.circular(isCompact ? 22 : 30),
-        border: Border.all(color: AppColors.border),
+        color: AppColors.surface.withValues(alpha: 0.82),
+        borderRadius: BorderRadius.circular(isCompact ? 20 : 24),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.76)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.18),
-            blurRadius: 20,
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 18,
             offset: const Offset(0, 10),
           ),
         ],
@@ -59,17 +59,17 @@ class AppBottomNav extends StatelessWidget {
 
           return Expanded(
             child: InkWell(
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(18),
               onTap: () => onSelected(index),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
                 curve: Curves.easeOut,
-                padding: EdgeInsets.symmetric(vertical: isCompact ? 8 : 10),
+                padding: EdgeInsets.symmetric(vertical: isCompact ? 7 : 9),
                 decoration: BoxDecoration(
                   color: isSelected
                       ? accent.withValues(alpha: 0.16)
                       : Colors.transparent,
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(18),
                   border: isSelected
                       ? Border.all(
                           color: accent.withValues(alpha: 0.18),

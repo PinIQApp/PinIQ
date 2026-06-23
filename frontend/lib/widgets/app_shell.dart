@@ -20,11 +20,10 @@ class AppShell extends StatelessWidget {
             ? AppSpacing.screenPadding
             : AppSpacing.sm;
     final verticalPadding = width >= 960
-        ? AppSpacing.lg
+        ? AppSpacing.md
         : width >= 420
-            ? AppSpacing.md
-            : AppSpacing.sm;
-    final isDesktop = width >= 980;
+            ? AppSpacing.sm
+            : AppSpacing.xs;
 
     return DecoratedBox(
       decoration: const BoxDecoration(
@@ -53,17 +52,7 @@ class AppShell extends StatelessWidget {
                   ),
                   child: Material(
                     color: Colors.transparent,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: Colors.white
-                            .withValues(alpha: isDesktop ? 0.02 : 0.0),
-                        borderRadius: BorderRadius.circular(isDesktop ? 34 : 0),
-                      ),
-                      child: Padding(
-                        padding: EdgeInsets.all(isDesktop ? AppSpacing.lg : 0),
-                        child: child,
-                      ),
-                    ),
+                    child: child,
                   ),
                 ),
               ),

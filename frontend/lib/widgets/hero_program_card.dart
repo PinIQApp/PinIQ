@@ -34,19 +34,24 @@ class HeroProgramCard extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(isCompact ? AppSpacing.lg : AppSpacing.xl),
+      padding: EdgeInsets.all(isCompact ? AppSpacing.md : AppSpacing.lg),
       decoration: BoxDecoration(
-        gradient: AppColors.brandedGradient(
-          primary: scheme.primary,
-          secondary: scheme.tertiary,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.surfaceElevated.withValues(alpha: 0.94),
+            AppColors.surface.withValues(alpha: 0.84),
+            scheme.primary.withValues(alpha: 0.18),
+          ],
         ),
-        borderRadius: BorderRadius.circular(isCompact ? 22 : 30),
-        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(isCompact ? 20 : 24),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.76)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.12),
-            blurRadius: 28,
-            offset: const Offset(0, 14),
+            blurRadius: 22,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
@@ -102,19 +107,19 @@ class HeroProgramCard extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: isCompact ? AppSpacing.lg : AppSpacing.xl),
+          SizedBox(height: isCompact ? AppSpacing.md : AppSpacing.lg),
           Text(
             title,
             style: AppTextStyles.pageTitle.copyWith(
-              fontSize: isCompact ? 25 : 31,
+              fontSize: isCompact ? 24 : 29,
             ),
           ),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.sm),
           Text(
             description,
             style: AppTextStyles.body,
           ),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.sm),
           Wrap(
             spacing: AppSpacing.xs,
             runSpacing: AppSpacing.xs,
@@ -126,7 +131,7 @@ class HeroProgramCard extends StatelessWidget {
             ],
           ),
           if (primaryAction != null || secondaryAction != null) ...[
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.md),
             Wrap(
               spacing: AppSpacing.sm,
               runSpacing: AppSpacing.sm,

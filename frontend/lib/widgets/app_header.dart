@@ -31,24 +31,27 @@ class AppHeader extends StatelessWidget {
 
     return Container(
       margin:
-          EdgeInsets.only(bottom: isCompact ? AppSpacing.md : AppSpacing.lg),
-      padding: EdgeInsets.all(isCompact ? AppSpacing.md : AppSpacing.lg),
+          EdgeInsets.only(bottom: isCompact ? AppSpacing.sm : AppSpacing.md),
+      padding: EdgeInsets.symmetric(
+        horizontal: isCompact ? AppSpacing.md : AppSpacing.lg,
+        vertical: isCompact ? AppSpacing.sm : AppSpacing.md,
+      ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.surface.withValues(alpha: 0.98),
-            AppColors.surfaceElevated.withValues(alpha: 0.94),
+            AppColors.surface.withValues(alpha: 0.78),
+            AppColors.surfaceElevated.withValues(alpha: 0.58),
           ],
         ),
-        borderRadius: BorderRadius.circular(isCompact ? 22 : 30),
-        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(isCompact ? 18 : 24),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.74)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.18),
-            blurRadius: 22,
-            offset: const Offset(0, 14),
+            color: Colors.black.withValues(alpha: 0.10),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
@@ -58,9 +61,10 @@ class AppHeader extends StatelessWidget {
           if (!isCompact) ...[
             Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.border),
-                color: AppColors.surfaceElevated,
+                borderRadius: BorderRadius.circular(18),
+                border:
+                    Border.all(color: AppColors.border.withValues(alpha: 0.72)),
+                color: AppColors.bg.withValues(alpha: 0.22),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.12),
@@ -82,7 +86,7 @@ class AppHeader extends StatelessWidget {
                 children: [
                   Wrap(
                     spacing: AppSpacing.xs,
-                    runSpacing: AppSpacing.xs,
+                    runSpacing: AppSpacing.xxs,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       Text(
@@ -98,8 +102,8 @@ class AppHeader extends StatelessWidget {
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
+                          horizontal: 9,
+                          vertical: 4,
                         ),
                         decoration: BoxDecoration(
                           color: primary.withValues(alpha: 0.14),
@@ -125,7 +129,7 @@ class AppHeader extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: AppTextStyles.sectionTitle.copyWith(
-                      fontSize: isCompact ? 22 : 28,
+                      fontSize: isCompact ? 20 : 24,
                       height: 1.08,
                     ),
                   ),
@@ -148,8 +152,9 @@ class AppHeader extends StatelessWidget {
             Container(
               decoration: BoxDecoration(
                 color: AppColors.surface,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.border),
+                borderRadius: BorderRadius.circular(14),
+                border:
+                    Border.all(color: AppColors.border.withValues(alpha: 0.72)),
               ),
               child: trailing!,
             ),

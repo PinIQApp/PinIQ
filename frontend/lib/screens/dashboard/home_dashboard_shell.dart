@@ -217,7 +217,7 @@ class _DashboardHomeView extends StatelessWidget {
             label: Text(canManageProgram ? 'Open team' : 'Open chat'),
           ),
         ),
-        const SizedBox(height: AppSpacing.xl),
+        const SizedBox(height: AppSpacing.md),
         _CoachCommandDeck(
           unreadThreads: unreadThreads,
           pendingCount: pendingCount,
@@ -242,9 +242,9 @@ class _DashboardHomeView extends StatelessWidget {
                 }
               : null,
         ),
-        const SizedBox(height: AppSpacing.xl),
+        const SizedBox(height: AppSpacing.lg),
         const SectionHeader(title: 'Today'),
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: AppSpacing.sm),
         _TodayCard(
           title: alerts.isNotEmpty
               ? '${alerts.length} weight alerts need attention'
@@ -293,9 +293,9 @@ class _DashboardHomeView extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: AppSpacing.xl),
+        const SizedBox(height: AppSpacing.lg),
         const SectionHeader(title: 'Program snapshot'),
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: AppSpacing.sm),
         GridView.count(
           crossAxisCount: width > 900
               ? 4
@@ -307,10 +307,10 @@ class _DashboardHomeView extends StatelessWidget {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           childAspectRatio: width > 900
-              ? 1.18
+              ? 1.45
               : isPhone
-                  ? 2.65
-                  : 1.35,
+                  ? 3.25
+                  : 1.7,
           children: [
             StatCard(
               label: 'Roster',
@@ -337,16 +337,16 @@ class _DashboardHomeView extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: AppSpacing.xl),
+        const SizedBox(height: AppSpacing.lg),
         const SectionHeader(title: 'Quick actions'),
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: AppSpacing.sm),
         GridView.count(
           crossAxisCount: isPhone ? 1 : 2,
           crossAxisSpacing: isPhone ? AppSpacing.sm : AppSpacing.md,
           mainAxisSpacing: isPhone ? AppSpacing.sm : AppSpacing.md,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          childAspectRatio: isPhone ? 2.65 : 1.55,
+          childAspectRatio: isPhone ? 3.2 : 1.95,
           children: [
             if (canManageProgram) ...[
               QuickActionTile(
@@ -441,9 +441,9 @@ class _DashboardHomeView extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: AppSpacing.xl),
+        const SizedBox(height: AppSpacing.lg),
         const SectionHeader(title: 'Alerts'),
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: AppSpacing.sm),
         if (alerts.isEmpty && pendingCount == 0 && unreadThreads == 0)
           const EmptyStateCard(
             title: 'No urgent alerts',
@@ -478,19 +478,19 @@ class _DashboardHomeView extends StatelessWidget {
                 ),
             ],
           ),
-        const SizedBox(height: AppSpacing.xl),
+        const SizedBox(height: AppSpacing.lg),
         const SectionHeader(title: 'Recent activity'),
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: AppSpacing.sm),
         Container(
-          padding: const EdgeInsets.all(AppSpacing.lg),
+          padding: const EdgeInsets.all(AppSpacing.md),
           decoration: BoxDecoration(
-            color: AppColors.surfaceElevated.withValues(alpha: 0.96),
-            borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-            border: Border.all(color: AppColors.border),
+            color: AppColors.surfaceElevated.withValues(alpha: 0.74),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: AppColors.border.withValues(alpha: 0.68)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.06),
-                blurRadius: 18,
+                blurRadius: 16,
                 offset: const Offset(0, 8),
               ),
             ],
@@ -505,7 +505,7 @@ class _DashboardHomeView extends StatelessWidget {
                     ? 'Use announcements when the team needs one clear update.'
                     : '${latestAnnouncement.sender.fullName} • ${_formatDate(latestAnnouncement.createdAt)}',
               ),
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: AppSpacing.sm),
               _ActivityRow(
                 icon: Icons.group_add_rounded,
                 title: pendingCount > 0
@@ -515,7 +515,7 @@ class _DashboardHomeView extends StatelessWidget {
                     ? 'Approve athletes, parents, and assistants from Team.'
                     : 'No pending join requests right now.',
               ),
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: AppSpacing.sm),
               _ActivityRow(
                 icon: Icons.chat_bubble_outline_rounded,
                 title: latestThread?.title ?? 'No recent conversation activity',
@@ -529,7 +529,7 @@ class _DashboardHomeView extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: AppSpacing.xl),
+        const SizedBox(height: AppSpacing.lg),
       ],
     );
   }
@@ -549,11 +549,11 @@ class _MessagingOverview extends StatelessWidget {
       padding: EdgeInsets.zero,
       children: [
         Container(
-          padding: const EdgeInsets.all(AppSpacing.xl),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           decoration: BoxDecoration(
-            color: AppColors.surfaceElevated.withValues(alpha: 0.98),
-            borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-            border: Border.all(color: AppColors.border),
+            color: AppColors.surfaceElevated.withValues(alpha: 0.76),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: AppColors.border.withValues(alpha: 0.68)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.05),
@@ -574,7 +574,7 @@ class _MessagingOverview extends StatelessWidget {
                 'Keep announcements separate from live conversations so coaches can scan what needs action fast.',
                 style: AppTextStyles.body,
               ),
-              const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: AppSpacing.md),
               Wrap(
                 spacing: AppSpacing.sm,
                 runSpacing: AppSpacing.sm,
@@ -606,9 +606,9 @@ class _MessagingOverview extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: AppSpacing.xl),
+        const SizedBox(height: AppSpacing.lg),
         const SectionHeader(title: 'Announcements'),
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: AppSpacing.sm),
         if (announcements.isEmpty)
           const EmptyStateCard(
             title: 'No announcements yet',
@@ -628,9 +628,9 @@ class _MessagingOverview extends StatelessWidget {
                   ),
                 ),
               ),
-        const SizedBox(height: AppSpacing.xl),
+        const SizedBox(height: AppSpacing.lg),
         const SectionHeader(title: 'Conversations'),
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: AppSpacing.sm),
         if (threads.isEmpty)
           const EmptyStateCard(
             title: 'No conversations yet',
@@ -664,11 +664,11 @@ class _ProgramToolsView extends StatelessWidget {
       padding: EdgeInsets.zero,
       children: [
         Container(
-          padding: const EdgeInsets.all(AppSpacing.xl),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           decoration: BoxDecoration(
-            color: AppColors.surfaceElevated.withValues(alpha: 0.98),
-            borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-            border: Border.all(color: AppColors.border),
+            color: AppColors.surfaceElevated.withValues(alpha: 0.76),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: AppColors.border.withValues(alpha: 0.68)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.05),
@@ -689,7 +689,7 @@ class _ProgramToolsView extends StatelessWidget {
                 'Run communication, athlete management, branding, and admin controls from one clean tool hub.',
                 style: AppTextStyles.body,
               ),
-              const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: AppSpacing.md),
               Wrap(
                 spacing: AppSpacing.sm,
                 runSpacing: AppSpacing.sm,
@@ -711,13 +711,13 @@ class _ProgramToolsView extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: AppSpacing.xl),
+        const SizedBox(height: AppSpacing.lg),
         const SectionHeader(title: 'Release readiness'),
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: AppSpacing.sm),
         const _ReleaseReadinessPanel(),
-        const SizedBox(height: AppSpacing.xl),
+        const SizedBox(height: AppSpacing.lg),
         const SectionHeader(title: 'Start here'),
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: AppSpacing.sm),
         LayoutBuilder(
           builder: (context, constraints) {
             final columns = constraints.maxWidth > 920 ? 3 : 1;
@@ -732,7 +732,7 @@ class _ProgramToolsView extends StatelessWidget {
                   ? phone
                       ? 1.55
                       : 2.2
-                  : 1.28,
+                  : 1.45,
               children: [
                 _HubCategoryCard(
                   icon: Icons.campaign_rounded,
@@ -913,9 +913,9 @@ class _ProgramToolsView extends StatelessWidget {
             );
           },
         ),
-        const SizedBox(height: AppSpacing.xl),
+        const SizedBox(height: AppSpacing.lg),
         const SectionHeader(title: 'Communication'),
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: AppSpacing.sm),
         ProgramToolTile(
           icon: Icons.campaign_rounded,
           title: 'Announcements',
@@ -940,9 +940,9 @@ class _ProgramToolsView extends StatelessWidget {
             );
           },
         ),
-        const SizedBox(height: AppSpacing.xl),
+        const SizedBox(height: AppSpacing.lg),
         const SectionHeader(title: 'Athlete management'),
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: AppSpacing.sm),
         ProgramToolTile(
           icon: Icons.groups_2_rounded,
           title: 'Roster',
@@ -985,9 +985,9 @@ class _ProgramToolsView extends StatelessWidget {
             );
           },
         ),
-        const SizedBox(height: AppSpacing.xl),
+        const SizedBox(height: AppSpacing.lg),
         const SectionHeader(title: 'AI tools'),
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: AppSpacing.sm),
         ProgramToolTile(
           icon: Icons.auto_awesome_rounded,
           title: 'AI Assistant',
@@ -1001,9 +1001,9 @@ class _ProgramToolsView extends StatelessWidget {
             );
           },
         ),
-        const SizedBox(height: AppSpacing.xl),
+        const SizedBox(height: AppSpacing.lg),
         const SectionHeader(title: 'Performance + events'),
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: AppSpacing.sm),
         ProgramToolTile(
           icon: Icons.fitness_center_rounded,
           title: 'Today\'s Training',
@@ -1073,9 +1073,9 @@ class _ProgramToolsView extends StatelessWidget {
             );
           },
         ),
-        const SizedBox(height: AppSpacing.xl),
+        const SizedBox(height: AppSpacing.lg),
         const SectionHeader(title: 'Brand + admin'),
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: AppSpacing.sm),
         if (appState.canManageBranding) ...[
           ProgramToolTile(
             icon: Icons.palette_outlined,
@@ -1138,16 +1138,16 @@ class _TodayCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.xl),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated.withValues(alpha: 0.98),
-        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-        border: Border.all(color: AppColors.border),
+        color: AppColors.surfaceElevated.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.68)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            color: Colors.black.withValues(alpha: 0.07),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -1156,28 +1156,32 @@ class _TodayCard extends StatelessWidget {
         children: [
           Text(
             title,
-            style: AppTextStyles.cardTitle.copyWith(fontSize: 22),
+            style: AppTextStyles.cardTitle.copyWith(fontSize: 20),
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
             subtitle,
             style: AppTextStyles.body,
           ),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.md),
           Wrap(
             spacing: AppSpacing.sm,
             runSpacing: AppSpacing.sm,
             children: pills,
           ),
-          const SizedBox(height: AppSpacing.lg),
-          GestureDetector(
+          const SizedBox(height: AppSpacing.md),
+          InkWell(
             onTap: onTap,
-            child: Text(
-              actionLabel,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.w800,
-                fontSize: 16,
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+              child: Text(
+                actionLabel,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 15,
+                ),
               ),
             ),
           ),
@@ -1250,9 +1254,9 @@ class _CoachCommandDeck extends StatelessWidget {
           physics: const NeverScrollableScrollPhysics(),
           childAspectRatio: columns == 1
               ? phone
-                  ? 1.75
-                  : 2.1
-              : 1.28,
+                  ? 2.35
+                  : 2.6
+              : 1.65,
           children: cards,
         );
       },
@@ -1279,11 +1283,11 @@ class _CoachCommandCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isCompact = MediaQuery.of(context).size.width < 430;
     return Container(
-      padding: EdgeInsets.all(isCompact ? AppSpacing.md : AppSpacing.lg),
+      padding: EdgeInsets.all(isCompact ? AppSpacing.sm : AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated.withValues(alpha: 0.94),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.border),
+        color: AppColors.surfaceElevated.withValues(alpha: 0.68),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.68)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1296,17 +1300,17 @@ class _CoachCommandCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(99),
             ),
           ),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.sm),
           Text(title, style: AppTextStyles.bodyStrong),
           const SizedBox(height: AppSpacing.xs),
           Text(
             value,
             style: AppTextStyles.cardTitle.copyWith(
-              fontSize: isCompact ? 21 : 24,
+              fontSize: isCompact ? 19 : 21,
               color: accent,
             ),
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: AppSpacing.xs),
           Expanded(
             child: Text(
               note,
@@ -1315,13 +1319,7 @@ class _CoachCommandCard extends StatelessWidget {
               style: AppTextStyles.body,
             ),
           ),
-          Align(
-            alignment: Alignment.bottomLeft,
-            child: OutlinedButton(
-              onPressed: onTap,
-              child: const Text('Open'),
-            ),
-          ),
+          TextButton(onPressed: onTap, child: const Text('Open')),
         ],
       ),
     );
@@ -1347,18 +1345,18 @@ class _HubCategoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isCompact = MediaQuery.of(context).size.width < 430;
     return Container(
-      padding: EdgeInsets.all(isCompact ? AppSpacing.md : AppSpacing.lg),
+      padding: EdgeInsets.all(isCompact ? AppSpacing.sm : AppSpacing.md),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.surface.withValues(alpha: 0.92),
-            AppColors.surfaceElevated.withValues(alpha: 0.9),
+            AppColors.surface.withValues(alpha: 0.74),
+            AppColors.surfaceElevated.withValues(alpha: 0.68),
           ],
         ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.68)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1371,13 +1369,13 @@ class _HubCategoryCard extends StatelessWidget {
             ),
             child: Icon(icon, color: accent),
           ),
-          SizedBox(height: isCompact ? AppSpacing.sm : AppSpacing.md),
+          SizedBox(height: isCompact ? AppSpacing.xs : AppSpacing.sm),
           Text(
             title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: AppTextStyles.cardTitle.copyWith(
-              fontSize: isCompact ? 18 : 22,
+              fontSize: isCompact ? 17 : 19,
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
@@ -1461,11 +1459,11 @@ class _ReleaseReadinessPanel extends StatelessWidget {
     ];
 
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated.withValues(alpha: 0.96),
-        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-        border: Border.all(color: AppColors.border),
+        color: AppColors.surfaceElevated.withValues(alpha: 0.68),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.68)),
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -1586,11 +1584,11 @@ class _AlertRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.sm),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated.withValues(alpha: 0.96),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
+        color: AppColors.surfaceElevated.withValues(alpha: 0.68),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.68)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1674,11 +1672,11 @@ class _ThreadPreviewRow extends StatelessWidget {
     final accent = Theme.of(context).colorScheme.primary;
 
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.sm),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated.withValues(alpha: 0.96),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
+        color: AppColors.surfaceElevated.withValues(alpha: 0.68),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.68)),
       ),
       child: Row(
         children: [

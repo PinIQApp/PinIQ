@@ -24,7 +24,7 @@ class StatCard extends StatelessWidget {
     final isCompact = MediaQuery.of(context).size.width < 430;
 
     return Container(
-      padding: EdgeInsets.all(isCompact ? AppSpacing.md : AppSpacing.lg),
+      padding: EdgeInsets.all(isCompact ? AppSpacing.sm : AppSpacing.md),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -34,8 +34,8 @@ class StatCard extends StatelessWidget {
             AppColors.surfaceElevated.withValues(alpha: 0.82),
           ],
         ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.74)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -48,21 +48,21 @@ class StatCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(99),
             ),
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: AppSpacing.xs),
           Text(
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: AppTextStyles.caption,
           ),
-          const SizedBox(height: AppSpacing.xs),
+          const SizedBox(height: AppSpacing.xxs),
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
             child: Text(
               value,
               style: AppTextStyles.statNumber.copyWith(
-                fontSize: isCompact ? 26 : 32,
+                fontSize: isCompact ? 24 : 28,
                 color: highlightColor ?? AppColors.textPrimary,
               ),
             ),
