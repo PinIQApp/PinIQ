@@ -213,7 +213,7 @@ class _TodayPlanPanel extends StatelessWidget {
             const _TodayTaskCard(
               icon: Icons.directions_run_rounded,
               title: 'Training',
-              value: '8 min stance primer',
+              value: '8 min stance timer',
               detail: 'Move, fake, level change, reset.',
               color: Color(0xFF22C55E),
             ),
@@ -1728,7 +1728,7 @@ class _WorkoutBlock {
 
 const _workouts = [
   _WorkoutPlan(
-    title: 'Stance + motion primer',
+    title: 'Stance + motion timer',
     category: 'stance',
     description:
         'Short reaction round for footwork, level change, and defense.',
@@ -1849,93 +1849,6 @@ const _workouts = [
     timerCueListLabel: 'Takedowns to work',
   ),
   _WorkoutPlan(
-    title: 'Neutral chain attack',
-    category: 'conditioning',
-    description: 'Build pace with fake-shot-finish chains and short rest.',
-    minutes: 18,
-    level: 'Intermediate',
-    equipment: 'Partner optional',
-    ageLabel: 'Middle school+',
-    imageAsset: 'assets/images/workouts/howto_shot_entry.png',
-    imageAspectRatio: 1.02,
-    howToTitle: 'How the entry should look',
-    howToTips: [
-      'Lower level before reaching.',
-      'Step through the target instead of diving down.',
-      'Recover back to stance after each finish.',
-    ],
-    icon: Icons.bolt_rounded,
-    color: Color(0xFFF59E0B),
-    blocks: [
-      _WorkoutBlock(
-          time: '4m',
-          title: 'Fake entries',
-          detail: 'Fake, circle, level change, reset.'),
-      _WorkoutBlock(
-          time: '8m',
-          title: 'Chain rounds',
-          detail: '30 seconds attack chain, 20 seconds rest, 8 rounds.'),
-      _WorkoutBlock(
-          time: '6m',
-          title: 'Finish pressure',
-          detail: 'Single to shelf, cut corner, run pipe.'),
-    ],
-    cues: [
-      'Every attack starts with motion.',
-      'Do not stop after contact.',
-      'Finish with hips and feet moving.',
-    ],
-    safetyNotes: [
-      'Use light contact if a partner helps.',
-      'Clear furniture before moving fast.',
-      'Rest more if breathing gets sloppy.',
-    ],
-  ),
-  _WorkoutPlan(
-    title: 'Mat return strength',
-    category: 'strength',
-    description:
-        'Posterior chain, grip, and return mechanics for top pressure.',
-    minutes: 24,
-    level: 'Intermediate',
-    equipment: 'Bands or dumbbells',
-    ageLabel: 'High school',
-    imageAsset: 'assets/images/workouts/howto_strength.png',
-    imageAspectRatio: 2.7,
-    howToTitle: 'How the strength drill should look',
-    howToTips: [
-      'Keep a strong plank from shoulders to heels.',
-      'Row or pull with control instead of twisting.',
-      'Use light weight until the position stays clean.',
-    ],
-    icon: Icons.fitness_center_rounded,
-    color: Color(0xFF38BDF8),
-    blocks: [
-      _WorkoutBlock(
-          time: '6m',
-          title: 'Hinge prep',
-          detail: 'Glute bridge, hip hinge, bear crawl.'),
-      _WorkoutBlock(
-          time: '12m',
-          title: 'Strength circuit',
-          detail: 'RDL, row, split squat, farmer carry, 3 rounds.'),
-      _WorkoutBlock(
-          time: '6m',
-          title: 'Return mechanics',
-          detail: 'Lift step, hip pop, cover pressure.'),
-    ],
-    cues: [
-      'Back flat, hips loaded.',
-      'Hands stay locked through the return.',
-      'Cover before celebrating the return.',
-    ],
-    safetyNotes: [
-      'Use a weight the athlete can control.',
-      'Skip loaded lifts without parent approval.',
-      'No live mat returns at home.',
-    ],
-  ),
-  _WorkoutPlan(
     title: 'Referee down position',
     category: 'match',
     description:
@@ -1991,50 +1904,9 @@ const _workouts = [
       'Sitout',
       'Quad pod knee slide',
     ],
-  ),
-  _WorkoutPlan(
-    title: 'Bottom escape burst',
-    category: 'match',
-    description:
-        'First-move speed for stand-ups, hand control, and hip separation.',
-    minutes: 14,
-    level: 'All levels',
-    equipment: 'Partner optional',
-    ageLabel: 'Middle school+',
-    imageAsset: 'assets/images/workouts/howto_bottom_escape.png',
-    imageAspectRatio: 1.06,
-    howToTitle: 'How the escape start should look',
-    howToTips: [
-      'Build a base before standing up.',
-      'Use hand control first, then separate the hips.',
-      'Face the opponent before resetting.',
-    ],
-    icon: Icons.keyboard_double_arrow_up_rounded,
-    color: Color(0xFF8B5CF6),
-    blocks: [
-      _WorkoutBlock(
-          time: '3m',
-          title: 'Whistle starts',
-          detail: 'Explode to base and clear hands.'),
-      _WorkoutBlock(
-          time: '7m',
-          title: 'Escape rounds',
-          detail: '15-second go, 20-second rest, 10 rounds.'),
-      _WorkoutBlock(
-          time: '4m',
-          title: 'Finish position',
-          detail: 'Turn in, face, circle away, reset.'),
-    ],
-    cues: [
-      'First move happens on the whistle.',
-      'Win hand control before standing tall.',
-      'Hips away, then face the opponent.',
-    ],
-    safetyNotes: [
-      'Use a soft surface if starting from bottom.',
-      'Partner pressure should stay controlled.',
-      'Stop if neck or wrist discomfort shows up.',
-    ],
+    timerIntervalOptions: [10, 15, 20, 25, 30],
+    timerInitialIntervalSeconds: 15,
+    timerIntervalLabel: 'Seconds between bottom calls',
   ),
   _WorkoutPlan(
     title: 'Recovery mobility',
@@ -2078,5 +1950,21 @@ const _workouts = [
       'Move slowly and breathe normally.',
       'Good option for parents to do with athletes.',
     ],
+    timerTitle: 'Recovery mobility',
+    timerSubtitle:
+        'Pick a recovery round length and move slowly through mobility cues.',
+    timerStartCue: 'Recovery mobility',
+    timerButtonLabel: 'Run recovery timer',
+    timerCues: [
+      'Breathing reset',
+      'Hip and ankle flow',
+      'Shoulder spine flow',
+      'Easy reset',
+    ],
+    timerDurationOptions: [5, 10, 12],
+    timerInitialMinutes: 10,
+    timerIntervalOptions: [30, 45, 60],
+    timerInitialIntervalSeconds: 45,
+    timerIntervalLabel: 'Seconds between mobility cues',
   ),
 ];

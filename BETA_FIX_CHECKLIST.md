@@ -23,11 +23,11 @@ Use this file as the working checklist so fixes happen in small, verifiable chun
 
 ## 2. Branding
 
-- [ ] Fix school branding save failure.
+- [x] Fix school branding save failure.
   - [x] Remove passlib runtime password path that was causing Render auth/API 500s.
-  - [ ] Redeploy API and retest branding save.
-- [ ] Confirm branding updates persist in the backend.
-- [ ] Confirm updated colors/logo/name appear after refresh.
+  - [x] Redeploy API and retest branding save.
+- [x] Confirm branding updates persist in the backend.
+- [x] Confirm updated colors/logo/name appear after refresh.
 - [ ] Improve branding page layout so it does not feel like a form dumped on a page.
 
 ## 3. Nutrition Planner
@@ -54,15 +54,15 @@ Use this file as the working checklist so fixes happen in small, verifiable chun
 
 ## 5. Workouts + Timers
 
-- [ ] Add 10s, 15s, 20s, 25s, and 30s referee down position drill interval selections.
-- [ ] Remove these workout/drill items:
-  - [ ] Neutral Chain Attack
-  - [ ] Bottom Escape Burst
-  - [ ] Mat Return Strength
-- [ ] Rename "Primer" to "Timer" on stance motion.
-- [ ] Add Timer to all other workouts where drills run by time.
-- [ ] Remove Stance Motion Timer from the main Hub.
-- [ ] Keep Stance Motion Timer only inside Today's Training.
+- [x] Add 10s, 15s, 20s, 25s, and 30s referee down position drill interval selections.
+- [x] Remove these workout/drill items:
+  - [x] Neutral Chain Attack
+  - [x] Bottom Escape Burst
+  - [x] Mat Return Strength
+- [x] Rename "Primer" to "Timer" on stance motion.
+- [x] Add Timer to all other workouts where drills run by time.
+- [x] Remove Stance Motion Timer from the main Hub.
+- [x] Keep Stance Motion Timer only inside Today's Training.
 - [ ] Improve workout screens visually.
 
 ## 6. Tournaments

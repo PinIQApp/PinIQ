@@ -22,7 +22,6 @@ import '../dashboard/ai_assistant_center_screen.dart';
 import '../dashboard/nutrition_center_screen.dart';
 import '../dashboard/operations_center_screen.dart';
 import '../dashboard/recruiting_center_screen.dart';
-import '../dashboard/stance_motion_workout_screen.dart';
 import '../dashboard/store_center_screen.dart';
 import '../dashboard/tournament_center_screen.dart';
 import '../dashboard/workout_center_screen.dart';
@@ -1122,26 +1121,6 @@ class _ProgramToolsView extends StatelessWidget {
                         );
                       },
                     ),
-                    _HubAction(
-                      label: 'Stance + motion',
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const StanceMotionWorkoutScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                    _HubAction(
-                      label: '1-3 min rounds',
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const StanceMotionWorkoutScreen(),
-                          ),
-                        );
-                      },
-                    ),
                   ],
                 ),
                 _HubCategoryCard(
@@ -1275,21 +1254,6 @@ class _ProgramToolsView extends StatelessWidget {
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const WorkoutCenterScreen()),
-            );
-          },
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        ProgramToolTile(
-          icon: Icons.directions_run_rounded,
-          title: 'Stance + motion workout',
-          subtitle:
-              'Pick 1, 2, or 3 minutes and react to random shot, sprawl, and down block calls.',
-          color: const Color(0xFF22C55E),
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const StanceMotionWorkoutScreen(),
-              ),
             );
           },
         ),
