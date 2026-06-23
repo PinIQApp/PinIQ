@@ -52,6 +52,53 @@ def test_create_plan_cut_includes_health_warnings():
     assert any("Snack" in meal.name for day in plan.weekly_plan for meal in day.meals)
 
 
+def test_steady_cut_pace_is_not_high_risk_with_normal_body_fat():
+    payload = NutritionPlanRequest(
+        athlete_id="athlete-steady",
+        name="Steady Athlete",
+        age=17,
+        sex=Sex.MALE,
+        height_in=70,
+        weight_lbs=190,
+        target_weight_lbs=176,
+        body_fat_percent=13,
+        goal=Goal.CUT,
+        activity_level=ActivityLevel.HIGH,
+        training_phase=TrainingPhase.INSEASON,
+        practice_window=PracticeWindow.AFTERNOON,
+        days_to_weigh_in=90,
+        matches_this_week=1,
+    )
+
+    plan = service.create_plan(payload)
+
+    assert any(w.code == "steady_cut_pace" for w in plan.warnings)
+    assert not any(w.severity == "high" for w in plan.warnings)
+
+
+def test_steady_cut_pace_is_high_risk_with_low_body_fat():
+    payload = NutritionPlanRequest(
+        athlete_id="athlete-lean",
+        name="Lean Athlete",
+        age=17,
+        sex=Sex.MALE,
+        height_in=70,
+        weight_lbs=190,
+        target_weight_lbs=176,
+        body_fat_percent=7,
+        goal=Goal.CUT,
+        activity_level=ActivityLevel.HIGH,
+        training_phase=TrainingPhase.INSEASON,
+        practice_window=PracticeWindow.AFTERNOON,
+        days_to_weigh_in=90,
+        matches_this_week=1,
+    )
+
+    plan = service.create_plan(payload)
+
+    assert any(w.code == "low_body_fat_cut" and w.severity == "high" for w in plan.warnings)
+
+
 def test_create_plan_family_budget_and_exclusions():
     payload = NutritionPlanRequest(
         athlete_id="athlete-2",

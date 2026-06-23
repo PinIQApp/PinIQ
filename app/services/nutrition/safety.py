@@ -4,21 +4,45 @@ from app.core.config import settings
 from app.models.nutrition import CheckInRequest, Goal, NutritionPlanRequest, NutritionWarning
 
 
+def _weekly_loss_rate(payload: NutritionPlanRequest, pounds_to_lose: float) -> float | None:
+    if payload.days_to_weigh_in is None or payload.days_to_weigh_in <= 0:
+        return None
+    return pounds_to_lose / max(payload.days_to_weigh_in / 7, 1)
+
+
+def _low_body_fat_cut(payload: NutritionPlanRequest) -> bool:
+    if payload.body_fat_percent is None:
+        return False
+    if payload.sex.value == "female":
+        return payload.body_fat_percent < 14
+    return payload.body_fat_percent < 8
+
+
 def build_plan_warnings(payload: NutritionPlanRequest) -> list[NutritionWarning]:
     warnings: list[NutritionWarning] = []
 
     if payload.goal == Goal.CUT and payload.target_weight_lbs is not None:
         pounds_to_lose = payload.weight_lbs - payload.target_weight_lbs
+        weekly_rate = _weekly_loss_rate(payload, pounds_to_lose)
+        low_body_fat = _low_body_fat_cut(payload)
         if pounds_to_lose >= 8:
+            severity = "warning"
+            if low_body_fat or weekly_rate is None or weekly_rate > 1.5:
+                severity = "high" if settings.enable_strict_wrestler_safety else "warning"
+            elif weekly_rate <= 1.25:
+                severity = "info"
             warnings.append(
                 NutritionWarning(
                     code="aggressive_cut",
-                    severity="high" if settings.enable_strict_wrestler_safety else "warning",
-                    message="Requested cut is aggressive for a youth athlete and should be supervised by a qualified professional.",
+                    severity=severity,
+                    message=(
+                        "Requested cut should be monitored with body-fat, hydration, and performance checks."
+                        if severity != "high"
+                        else "Requested cut is aggressive for a youth athlete and should be supervised by a qualified professional."
+                    ),
                 )
             )
-        if payload.days_to_weigh_in is not None and payload.days_to_weigh_in > 0:
-            weekly_rate = pounds_to_lose / max(payload.days_to_weigh_in / 7, 1)
+        if weekly_rate is not None:
             if weekly_rate > 1.5:
                 warnings.append(
                     NutritionWarning(
@@ -27,6 +51,23 @@ def build_plan_warnings(payload: NutritionPlanRequest) -> list[NutritionWarning]
                         message="Planned rate of loss exceeds conservative wrestling guidance. Slow the cut and prioritize performance.",
                     )
                 )
+            elif weekly_rate <= 1.25 and not low_body_fat:
+                warnings.append(
+                    NutritionWarning(
+                        code="steady_cut_pace",
+                        severity="info",
+                        message="Planned loss is near 1 lb/week. Continue monitoring hydration, energy, and body composition.",
+                    )
+                )
+
+        if low_body_fat:
+            warnings.append(
+                NutritionWarning(
+                    code="low_body_fat_cut",
+                    severity="high",
+                    message="Reported body-fat percentage is low for an additional cut. Require staff and medical review before reducing weight.",
+                )
+            )
 
     if payload.days_to_weigh_in is not None and payload.days_to_weigh_in <= 3:
         warnings.append(
