@@ -26,25 +26,40 @@ class QuickActionTile extends StatelessWidget {
     final width = MediaQuery.of(context).size.width;
     final isCompact = width < 430;
     final useRowLayout = width >= 720;
+    final isDesktop = width >= 980;
     return InkWell(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(isDesktop ? 0 : 16),
       onTap: onTap,
       child: Ink(
         padding: EdgeInsets.symmetric(
-          horizontal: isCompact ? AppSpacing.sm : AppSpacing.md,
-          vertical: isCompact ? AppSpacing.sm : AppSpacing.md,
+          horizontal: isCompact
+              ? AppSpacing.sm
+              : isDesktop
+                  ? AppSpacing.lg
+                  : AppSpacing.md,
+          vertical: isCompact
+              ? AppSpacing.sm
+              : isDesktop
+                  ? AppSpacing.sm
+                  : AppSpacing.md,
         ),
         decoration: BoxDecoration(
-          color: AppColors.surface.withValues(alpha: 0.66),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border.withValues(alpha: 0.68)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 16,
-              offset: const Offset(0, 8),
-            ),
-          ],
+          color: isDesktop
+              ? Colors.transparent
+              : AppColors.surface.withValues(alpha: 0.66),
+          borderRadius: BorderRadius.circular(isDesktop ? 0 : 16),
+          border: isDesktop
+              ? null
+              : Border.all(color: AppColors.border.withValues(alpha: 0.68)),
+          boxShadow: isDesktop
+              ? null
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 16,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
         ),
         child: Flex(
           direction: useRowLayout ? Axis.horizontal : Axis.vertical,
@@ -53,8 +68,8 @@ class QuickActionTile extends StatelessWidget {
               : CrossAxisAlignment.start,
           children: [
             Container(
-              width: isCompact ? 30 : 32,
-              height: isCompact ? 30 : 32,
+              width: isCompact ? 30 : 34,
+              height: isCompact ? 30 : 34,
               decoration: BoxDecoration(
                 color: accent.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(11),
@@ -80,7 +95,7 @@ class QuickActionTile extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppTextStyles.bodyStrong.copyWith(
-                      fontSize: isCompact ? 13 : 14,
+                      fontSize: isCompact ? 13 : 15,
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xxs),

@@ -464,158 +464,245 @@ class _DashboardHomeView extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: AppSpacing.lg),
-        const SectionHeader(title: 'Program snapshot'),
-        const SizedBox(height: AppSpacing.sm),
-        GridView.count(
-          crossAxisCount: width > 900
-              ? 4
-              : isPhone
-                  ? 1
-                  : 2,
-          crossAxisSpacing: isPhone ? AppSpacing.sm : AppSpacing.md,
-          mainAxisSpacing: isPhone ? AppSpacing.sm : AppSpacing.md,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          childAspectRatio: width > 900
-              ? 1.45
-              : isPhone
-                  ? 3.25
-                  : 1.7,
-          children: [
-            StatCard(
-              label: 'Roster',
-              value: '$approvedCount',
-              sublabel: 'approved athletes and staff',
-            ),
-            StatCard(
-              label: 'Unread',
-              value: '$unreadThreads',
-              sublabel: 'conversation threads',
-              highlightColor:
-                  unreadThreads > 0 ? theme.colorScheme.primary : null,
-            ),
-            StatCard(
-              label: 'Alerts',
-              value: '${alerts.length}',
-              sublabel: 'weight items to review',
-              highlightColor: alerts.isNotEmpty ? AppColors.warning : null,
-            ),
-            StatCard(
-              label: 'Updates',
-              value: '${announcements.length}',
-              sublabel: 'announcements posted',
-            ),
-          ],
-        ),
+        if (width < 980) ...[
+          const SizedBox(height: AppSpacing.lg),
+          const SectionHeader(title: 'Program snapshot'),
+          const SizedBox(height: AppSpacing.sm),
+          GridView.count(
+            crossAxisCount: isPhone ? 1 : 2,
+            crossAxisSpacing: isPhone ? AppSpacing.sm : AppSpacing.md,
+            mainAxisSpacing: isPhone ? AppSpacing.sm : AppSpacing.md,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            childAspectRatio: isPhone ? 3.25 : 1.7,
+            children: [
+              StatCard(
+                label: 'Roster',
+                value: '$approvedCount',
+                sublabel: 'approved athletes and staff',
+              ),
+              StatCard(
+                label: 'Unread',
+                value: '$unreadThreads',
+                sublabel: 'conversation threads',
+                highlightColor:
+                    unreadThreads > 0 ? theme.colorScheme.primary : null,
+              ),
+              StatCard(
+                label: 'Alerts',
+                value: '${alerts.length}',
+                sublabel: 'weight items to review',
+                highlightColor: alerts.isNotEmpty ? AppColors.warning : null,
+              ),
+              StatCard(
+                label: 'Updates',
+                value: '${announcements.length}',
+                sublabel: 'announcements posted',
+              ),
+            ],
+          ),
+        ],
         const SizedBox(height: AppSpacing.lg),
         const SectionHeader(title: 'Quick actions'),
         const SizedBox(height: AppSpacing.sm),
-        GridView.count(
-          crossAxisCount: isPhone ? 1 : 2,
-          crossAxisSpacing: isPhone ? AppSpacing.sm : AppSpacing.md,
-          mainAxisSpacing: isPhone ? AppSpacing.sm : AppSpacing.md,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          childAspectRatio: width > 900
-              ? 4.25
-              : isPhone
-                  ? 3.2
-                  : 2.9,
-          children: [
-            if (canManageProgram) ...[
-              QuickActionTile(
-                icon: Icons.campaign_rounded,
-                title: 'Send announcement',
-                subtitle: 'Post one clear team update.',
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                        builder: (_) => const AnnouncementsScreen()),
-                  );
-                },
-              ),
-              QuickActionTile(
-                icon: Icons.person_add_alt_1_rounded,
-                title: 'Add athlete',
-                subtitle: 'Open roster and approvals.',
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                        builder: (_) => const TeamMembersScreen()),
-                  );
-                },
-              ),
-            ] else ...[
+        if (width >= 980)
+          _DesktopActionPanel(
+            children: [
+              if (canManageProgram) ...[
+                QuickActionTile(
+                  icon: Icons.campaign_rounded,
+                  title: 'Send announcement',
+                  subtitle: 'Post one clear team update.',
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                          builder: (_) => const AnnouncementsScreen()),
+                    );
+                  },
+                ),
+                QuickActionTile(
+                  icon: Icons.person_add_alt_1_rounded,
+                  title: 'Add athlete',
+                  subtitle: 'Open roster and approvals.',
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                          builder: (_) => const TeamMembersScreen()),
+                    );
+                  },
+                ),
+              ] else ...[
+                QuickActionTile(
+                  icon: Icons.monitor_weight_outlined,
+                  title: isParent ? 'View athlete plan' : 'View weight plan',
+                  subtitle: isParent
+                      ? 'Check linked athlete safety status.'
+                      : 'Review your plan and recent logs.',
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => isParent
+                            ? const ParentWeightViewScreen()
+                            : const AthleteWeightPlanScreen(),
+                      ),
+                    );
+                  },
+                ),
+                QuickActionTile(
+                  icon: Icons.restaurant_menu_rounded,
+                  title: 'Nutrition',
+                  subtitle: 'Open meal timing and hydration help.',
+                  color: const Color(0xFF14B8A6),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                          builder: (_) => const NutritionCenterScreen()),
+                    );
+                  },
+                ),
+              ],
               QuickActionTile(
                 icon: Icons.monitor_weight_outlined,
-                title: isParent ? 'View athlete plan' : 'View weight plan',
-                subtitle: isParent
-                    ? 'Check linked athlete safety status.'
-                    : 'Review your plan and recent logs.',
+                title: canManageProgram
+                    ? 'Review weights'
+                    : isAthlete
+                        ? 'Log weight'
+                        : 'Open weight view',
+                subtitle: canManageProgram
+                    ? 'Check plans and alerts.'
+                    : isAthlete
+                        ? 'Add today’s check-in.'
+                        : 'Review linked athlete status.',
+                color: AppColors.warning,
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (_) => isParent
-                          ? const ParentWeightViewScreen()
-                          : const AthleteWeightPlanScreen(),
+                      builder: (_) => canManageProgram
+                          ? const TeamWeightDashboardScreen()
+                          : isAthlete
+                              ? const AthleteWeightLogScreen()
+                              : const ParentWeightViewScreen(),
                     ),
                   );
                 },
               ),
               QuickActionTile(
-                icon: Icons.restaurant_menu_rounded,
-                title: 'Nutrition',
-                subtitle: 'Open meal timing and hydration help.',
-                color: const Color(0xFF14B8A6),
+                icon: Icons.forum_rounded,
+                title: 'Open chat',
+                subtitle: 'Jump into live threads.',
+                color: const Color(0xFF38BDF8),
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                        builder: (_) => const NutritionCenterScreen()),
+                      builder: (_) => const MessageThreadsScreen(),
+                    ),
                   );
                 },
               ),
             ],
-            QuickActionTile(
-              icon: Icons.monitor_weight_outlined,
-              title: canManageProgram
-                  ? 'Review weights'
-                  : isAthlete
-                      ? 'Log weight'
-                      : 'Open weight view',
-              subtitle: canManageProgram
-                  ? 'Check plans and alerts.'
-                  : isAthlete
-                      ? 'Add today’s check-in.'
-                      : 'Review linked athlete status.',
-              color: AppColors.warning,
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => canManageProgram
-                        ? const TeamWeightDashboardScreen()
-                        : isAthlete
-                            ? const AthleteWeightLogScreen()
-                            : const ParentWeightViewScreen(),
-                  ),
-                );
-              },
-            ),
-            QuickActionTile(
-              icon: Icons.forum_rounded,
-              title: 'Open chat',
-              subtitle: 'Jump into live threads.',
-              color: const Color(0xFF38BDF8),
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const MessageThreadsScreen(),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
+          )
+        else
+          GridView.count(
+            crossAxisCount: isPhone ? 1 : 2,
+            crossAxisSpacing: isPhone ? AppSpacing.sm : AppSpacing.md,
+            mainAxisSpacing: isPhone ? AppSpacing.sm : AppSpacing.md,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            childAspectRatio: isPhone ? 3.2 : 2.9,
+            children: [
+              if (canManageProgram) ...[
+                QuickActionTile(
+                  icon: Icons.campaign_rounded,
+                  title: 'Send announcement',
+                  subtitle: 'Post one clear team update.',
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                          builder: (_) => const AnnouncementsScreen()),
+                    );
+                  },
+                ),
+                QuickActionTile(
+                  icon: Icons.person_add_alt_1_rounded,
+                  title: 'Add athlete',
+                  subtitle: 'Open roster and approvals.',
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                          builder: (_) => const TeamMembersScreen()),
+                    );
+                  },
+                ),
+              ] else ...[
+                QuickActionTile(
+                  icon: Icons.monitor_weight_outlined,
+                  title: isParent ? 'View athlete plan' : 'View weight plan',
+                  subtitle: isParent
+                      ? 'Check linked athlete safety status.'
+                      : 'Review your plan and recent logs.',
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => isParent
+                            ? const ParentWeightViewScreen()
+                            : const AthleteWeightPlanScreen(),
+                      ),
+                    );
+                  },
+                ),
+                QuickActionTile(
+                  icon: Icons.restaurant_menu_rounded,
+                  title: 'Nutrition',
+                  subtitle: 'Open meal timing and hydration help.',
+                  color: const Color(0xFF14B8A6),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                          builder: (_) => const NutritionCenterScreen()),
+                    );
+                  },
+                ),
+              ],
+              QuickActionTile(
+                icon: Icons.monitor_weight_outlined,
+                title: canManageProgram
+                    ? 'Review weights'
+                    : isAthlete
+                        ? 'Log weight'
+                        : 'Open weight view',
+                subtitle: canManageProgram
+                    ? 'Check plans and alerts.'
+                    : isAthlete
+                        ? 'Add today’s check-in.'
+                        : 'Review linked athlete status.',
+                color: AppColors.warning,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => canManageProgram
+                          ? const TeamWeightDashboardScreen()
+                          : isAthlete
+                              ? const AthleteWeightLogScreen()
+                              : const ParentWeightViewScreen(),
+                    ),
+                  );
+                },
+              ),
+              QuickActionTile(
+                icon: Icons.forum_rounded,
+                title: 'Open chat',
+                subtitle: 'Jump into live threads.',
+                color: const Color(0xFF38BDF8),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const MessageThreadsScreen(),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
         const SizedBox(height: AppSpacing.lg),
         const SectionHeader(title: 'Alerts'),
         const SizedBox(height: AppSpacing.sm),
@@ -1367,6 +1454,35 @@ class _DesktopHomeSummary extends StatelessWidget {
           ElevatedButton(onPressed: onPrimary, child: Text(primaryLabel)),
           const SizedBox(width: AppSpacing.sm),
           OutlinedButton(onPressed: onSecondary, child: Text(secondaryLabel)),
+        ],
+      ),
+    );
+  }
+}
+
+class _DesktopActionPanel extends StatelessWidget {
+  const _DesktopActionPanel({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.34),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.46)),
+      ),
+      child: Column(
+        children: [
+          for (var i = 0; i < children.length; i++) ...[
+            children[i],
+            if (i != children.length - 1)
+              Divider(
+                height: 1,
+                color: AppColors.border.withValues(alpha: 0.44),
+              ),
+          ],
         ],
       ),
     );
