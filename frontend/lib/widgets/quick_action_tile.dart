@@ -25,11 +25,15 @@ class QuickActionTile extends StatelessWidget {
     final accent = color ?? Theme.of(context).colorScheme.primary;
     final width = MediaQuery.of(context).size.width;
     final isCompact = width < 430;
+    final useRowLayout = width >= 720;
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: onTap,
       child: Ink(
-        padding: EdgeInsets.all(isCompact ? AppSpacing.sm : AppSpacing.md),
+        padding: EdgeInsets.symmetric(
+          horizontal: isCompact ? AppSpacing.sm : AppSpacing.md,
+          vertical: isCompact ? AppSpacing.sm : AppSpacing.md,
+        ),
         decoration: BoxDecoration(
           color: AppColors.surface.withValues(alpha: 0.66),
           borderRadius: BorderRadius.circular(16),
@@ -42,8 +46,11 @@ class QuickActionTile extends StatelessWidget {
             ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Flex(
+          direction: useRowLayout ? Axis.horizontal : Axis.vertical,
+          crossAxisAlignment: useRowLayout
+              ? CrossAxisAlignment.center
+              : CrossAxisAlignment.start,
           children: [
             Container(
               width: isCompact ? 30 : 32,
@@ -54,22 +61,43 @@ class QuickActionTile extends StatelessWidget {
               ),
               child: Icon(icon, color: accent, size: 17),
             ),
-            SizedBox(height: isCompact ? AppSpacing.xs : AppSpacing.sm),
-            Text(
-              title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: AppTextStyles.bodyStrong.copyWith(
-                fontSize: isCompact ? 13 : 14,
+            SizedBox(
+              width: useRowLayout ? AppSpacing.md : 0,
+              height: useRowLayout
+                  ? 0
+                  : isCompact
+                      ? AppSpacing.xs
+                      : AppSpacing.sm,
+            ),
+            Expanded(
+              flex: useRowLayout ? 1 : 0,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.bodyStrong.copyWith(
+                      fontSize: isCompact ? 13 : 14,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xxs),
+                  Text(
+                    subtitle,
+                    maxLines: useRowLayout ? 1 : 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.caption,
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: AppSpacing.xxs),
-            Text(
-              subtitle,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: AppTextStyles.caption,
-            ),
+            if (useRowLayout) ...[
+              const SizedBox(width: AppSpacing.sm),
+              Icon(Icons.chevron_right_rounded,
+                  color: AppColors.textMuted, size: 20),
+            ],
           ],
         ),
       ),

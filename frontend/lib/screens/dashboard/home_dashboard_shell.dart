@@ -346,7 +346,11 @@ class _DashboardHomeView extends StatelessWidget {
           mainAxisSpacing: isPhone ? AppSpacing.sm : AppSpacing.md,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          childAspectRatio: isPhone ? 3.2 : 1.95,
+          childAspectRatio: width > 900
+              ? 4.25
+              : isPhone
+                  ? 3.2
+                  : 2.9,
           children: [
             if (canManageProgram) ...[
               QuickActionTile(
@@ -730,9 +734,9 @@ class _ProgramToolsView extends StatelessWidget {
               physics: const NeverScrollableScrollPhysics(),
               childAspectRatio: columns == 1
                   ? phone
-                      ? 1.55
-                      : 2.2
-                  : 1.45,
+                      ? 2.05
+                      : 2.65
+                  : 1.85,
               children: [
                 _HubCategoryCard(
                   icon: Icons.campaign_rounded,
@@ -1256,7 +1260,7 @@ class _CoachCommandDeck extends StatelessWidget {
               ? phone
                   ? 2.35
                   : 2.6
-              : 1.65,
+              : 2.35,
           children: cards,
         );
       },
