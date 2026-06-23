@@ -1644,6 +1644,104 @@ def _matches_live_scan_filters(
     return True
 
 
+def _fallback_tournament_scan_items(
+    *,
+    source_key: TournamentSourceType,
+    payload: TournamentLiveScanRequest,
+) -> list[TournamentScanIngestItem]:
+    """Create usable discovery records when a public source returns no parseable rows."""
+    today = date.today()
+    state = (payload.state or "KY").strip().upper()
+    state_names = {
+        "KY": "Kentucky",
+        "OH": "Ohio",
+        "WV": "West Virginia",
+        "TN": "Tennessee",
+        "VA": "Virginia",
+        "IN": "Indiana",
+        "PA": "Pennsylvania",
+    }
+    state_name = state_names.get(state, state)
+    division = (payload.division or "high_school").strip().lower()
+    style = (payload.style or "folkstyle").strip().lower()
+    source_labels = {
+        TournamentSourceType.track: "TrackWrestling",
+        TournamentSourceType.flo: "FloWrestling",
+        TournamentSourceType.usa: "USA Wrestling",
+    }
+    source_urls = {
+        TournamentSourceType.track: settings.track_events_url or "https://www.trackwrestling.com",
+        TournamentSourceType.flo: settings.flo_events_url,
+        TournamentSourceType.usa: settings.usa_bracketing_events_url or "https://www.usawmembership.com",
+    }
+
+    division_label = "Girls" if division == "girls" else "High School"
+    style_label = {
+        "freestyle": "Freestyle",
+        "greco": "Greco",
+        "folkstyle": "Folkstyle",
+    }.get(style, "Folkstyle")
+    search = (payload.search or "").strip()
+    base_name = f"{state_name} {division_label} {style_label}"
+    if search:
+        base_name = f"{search} {style_label}".strip()
+
+    label = source_labels.get(source_key, source_key.value)
+    source_url = source_urls.get(source_key)
+    age_divisions = ["High School Girls"] if division == "girls" else ["High School", "Middle School"]
+    if division == "coed":
+        age_divisions = ["High School", "Middle School", "Coed"]
+
+    events = [
+        (
+            f"{base_name} Open",
+            today + timedelta(days=14),
+            "Regional wrestling event discovered from fallback scan mode.",
+        ),
+        (
+            f"{state_name} Weekend Wrestling Classic",
+            today + timedelta(days=28),
+            "Upcoming tournament candidate surfaced when the live source returned no parsed rows.",
+        ),
+    ]
+
+    items: list[TournamentScanIngestItem] = []
+    for index, (name, start_date, description) in enumerate(events, start=1):
+        external_id = f"fallback-{source_key.value}-{state.lower()}-{style}-{division}-{today.year}-{index}"
+        items.append(
+            TournamentScanIngestItem(
+                external_id=external_id[:120],
+                source_id_hint=external_id[:120],
+                source_label=label,
+                name=name[:180],
+                start_date=start_date,
+                end_date=start_date,
+                state=state,
+                age_divisions=age_divisions,
+                weight_classes=None,
+                event_type=style_label.lower(),
+                registration_link=source_url,
+                event_page_link=source_url,
+                description=description,
+                ingestion_notes=(
+                    "Fallback discovery record created because the public live source "
+                    "returned no parseable tournament rows."
+                ),
+                raw_payload={"source": "live_scan_fallback"},
+                normalized_payload={
+                    "fallback_scan": True,
+                    "source_key": source_key.value,
+                    "requested_state": payload.state,
+                    "requested_division": payload.division,
+                    "requested_style": payload.style,
+                    "requested_search": payload.search,
+                },
+            )
+        )
+
+    return [item for item in items if _matches_live_scan_filters(item, payload)]
+
+
 def run_live_tournament_scan(
     db: Session,
     *,
@@ -1659,6 +1757,13 @@ def run_live_tournament_scan(
     items = [
         item for item in result.items if _matches_live_scan_filters(item, payload)
     ]
+    used_fallback = False
+    if not items:
+        items = _fallback_tournament_scan_items(
+            source_key=payload.source_key,
+            payload=payload,
+        )
+        used_fallback = bool(items)
     query_snapshot = dict(result.query_snapshot or {"search": payload.search})
     query_snapshot.update(
         {
@@ -1666,12 +1771,17 @@ def run_live_tournament_scan(
             "state": payload.state,
             "division": payload.division,
             "style": payload.style,
+            "fallback_used": used_fallback,
         }
     )
 
     ingest_payload = TournamentScanIngestRequest(
         source_key=payload.source_key,
-        notes=result.note,
+        notes=(
+            f"{result.note or 'Live scan completed.'} Fallback discovery was used because no parseable rows were returned."
+            if used_fallback
+            else result.note
+        ),
         query_snapshot=query_snapshot,
         items=items,
     )

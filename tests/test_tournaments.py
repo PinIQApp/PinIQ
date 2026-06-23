@@ -129,6 +129,57 @@ def test_live_scan_filters_state_division_and_style(
     assert "Ohio Girls Freestyle Open" not in names
 
 
+def test_live_scan_empty_source_uses_discovery_fallback(
+    client: TestClient,
+    coach_auth_headers: dict[str, str],
+    monkeypatch,
+):
+    class EmptyScanner:
+        def fetch(self, *, search=None):
+            return TournamentSourceScanResult(
+                source_key=TournamentSourceType.track,
+                query_snapshot={"search": search},
+                items=[],
+                note="Track scan returned no rows.",
+            )
+
+    monkeypatch.setattr(
+        "app.services.tournament_service.scanner_for_source",
+        lambda source_key: EmptyScanner(),
+    )
+
+    response = client.post(
+        "/api/v1/tournaments/scan-runs/live",
+        headers=coach_auth_headers,
+        json={
+            "source_key": "track",
+            "state": "KY",
+            "division": "girls",
+            "style": "folkstyle",
+        },
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["items_seen_count"] == 2
+    assert body["items_created_count"] == 2
+    assert body["query_snapshot"]["fallback_used"] is True
+
+    discover = client.get(
+        "/api/v1/tournaments/discover?team_id=1&source=TrackWrestling",
+        headers=coach_auth_headers,
+    )
+    assert discover.status_code == 200
+    fallback_events = [
+        item
+        for item in discover.json()["tournaments"]
+        if item["ingestion_notes"]
+        and "Fallback discovery record" in item["ingestion_notes"]
+    ]
+    assert len(fallback_events) == 2
+    assert all(item["state"] == "KY" for item in fallback_events)
+
+
 def test_tournament_scan_ingest_creates_discoverable_tournament(
     client: TestClient,
     coach_auth_headers: dict[str, str],

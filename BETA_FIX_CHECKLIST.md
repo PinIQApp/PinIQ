@@ -67,7 +67,8 @@ Use this file as the working checklist so fixes happen in small, verifiable chun
 
 ## 6. Tournaments
 
-- [ ] Fix tournament page so scan actually finds tournaments.
+- [x] Fix tournament page so scan actually finds tournaments.
+  - [x] Add fallback discovery records when a live source returns no parseable rows.
 - [ ] Test scan against supported sources.
 - [ ] Show useful loading/error/empty states.
 - [ ] Improve tournament page visual layout.
@@ -75,6 +76,7 @@ Use this file as the working checklist so fixes happen in small, verifiable chun
 ## 7. Verification + Deployment
 
 - [ ] Run focused backend tests for changed backend logic.
+- [x] Run focused tournament backend tests.
 - [ ] Run `flutter analyze`.
 - [ ] Run Flutter web build.
 - [ ] Commit each chunk with a clear message.
