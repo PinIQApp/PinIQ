@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../../core/app_state.dart';
+import '../../models/recruiting_models.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_text_styles.dart';
@@ -16,74 +19,148 @@ class RecruitingCenterScreen extends StatefulWidget {
 class _RecruitingCenterScreenState extends State<RecruitingCenterScreen> {
   String _filter = 'all';
   int _selectedIndex = 0;
+  bool _isLoading = true;
+  bool _isSavingLinks = false;
+  bool _isScanning = false;
+  String? _error;
+  String? _sourceStatus;
+  List<RecruitingAthleteModel> _athletes = [];
+  final Map<int, List<RecruitingSourceLinkModel>> _sourceLinksByAthlete = {};
 
-  static const List<_RecruitingAthlete> _athletes = [
-    _RecruitingAthlete(
-      name: 'Avery Hall',
-      grade: 'Senior',
-      weightClass: '120',
-      status: 'Priority',
-      completeness: '92%',
-      interest: '4 schools',
-      summary: 'Strong profile, needs one updated varsity highlight set.',
-      details: [
-        'GPA summary and bio ready',
-        'Needs one fresh tournament clip',
-        'Coach contact notes updated this week',
-      ],
-    ),
-    _RecruitingAthlete(
-      name: 'Maya Slone',
-      grade: 'Junior',
-      weightClass: '132',
-      status: 'Watchlist',
-      completeness: '74%',
-      interest: '2 schools',
-      summary: 'Good athlete page, missing polished transcript and intro video.',
-      details: [
-        'Highlight package is serviceable',
-        'Academic block still incomplete',
-        'Could become a strong off-season recruiting push',
-      ],
-    ),
-    _RecruitingAthlete(
-      name: 'Kylie Johnson',
-      grade: 'Senior',
-      weightClass: '145',
-      status: 'Missing media',
-      completeness: '61%',
-      interest: '1 school',
-      summary: 'Needs updated photos, clips, and one cleaner public share page.',
-      details: [
-        'Stats summary is in place',
-        'No modern match footage linked yet',
-        'Should move into urgent profile rebuild',
-      ],
-    ),
-    _RecruitingAthlete(
-      name: 'Jocelyn Reed',
-      grade: 'Junior',
-      weightClass: '155',
-      status: 'Ready',
-      completeness: '88%',
-      interest: '3 schools',
-      summary: 'Recruiting page is clean and ready for outreach this month.',
-      details: [
-        'Highlight coverage looks solid',
-        'Coach note timeline is current',
-        'Needs one college outreach packet export',
-      ],
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadRecruitingData());
+  }
+
+  Future<void> _loadRecruitingData() async {
+    final appState = context.read<AppState>();
+    final token = appState.token;
+    if (token == null) return;
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      final athletes = await appState.api.fetchRecruitingAthletes(token: token);
+      if (!mounted) return;
+      setState(() {
+        _athletes = athletes;
+        _selectedIndex = 0;
+        _isLoading = false;
+      });
+      if (athletes.isNotEmpty) {
+        await _loadSourceLinks(athletes.first.athleteId);
+      }
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _error = error.toString().replaceFirst('Exception: ', '');
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loadSourceLinks(int athleteId) async {
+    final appState = context.read<AppState>();
+    final token = appState.token;
+    if (token == null || _sourceLinksByAthlete.containsKey(athleteId)) return;
+    try {
+      final links = await appState.api.fetchRecruitingSourceLinks(
+        token: token,
+        athleteId: athleteId,
+      );
+      if (!mounted) return;
+      setState(() => _sourceLinksByAthlete[athleteId] = links);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() =>
+          _sourceStatus = error.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  Future<void> _selectAthlete(
+      int index, List<RecruitingAthleteModel> visible) async {
+    setState(() {
+      _selectedIndex = index;
+      _sourceStatus = null;
+    });
+    await _loadSourceLinks(visible[index].athleteId);
+  }
+
+  Future<void> _saveSourceLinks(
+    RecruitingAthleteModel athlete,
+    List<RecruitingSourceLinkModel> links,
+  ) async {
+    final appState = context.read<AppState>();
+    final token = appState.token;
+    if (token == null) return;
+    setState(() {
+      _isSavingLinks = true;
+      _sourceStatus = null;
+    });
+    try {
+      final saved = await appState.api.saveRecruitingSourceLinks(
+        token: token,
+        athleteId: athlete.athleteId,
+        sourceLinks: links,
+      );
+      if (!mounted) return;
+      setState(() {
+        _sourceLinksByAthlete[athlete.athleteId] = saved;
+        _sourceStatus = 'Source links saved.';
+        _isSavingLinks = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _sourceStatus = error.toString().replaceFirst('Exception: ', '');
+        _isSavingLinks = false;
+      });
+    }
+  }
+
+  Future<void> _scanSourceLinks(RecruitingAthleteModel athlete) async {
+    final appState = context.read<AppState>();
+    final token = appState.token;
+    final links = _sourceLinksByAthlete[athlete.athleteId] ?? const [];
+    if (token == null || links.isEmpty) return;
+    setState(() {
+      _isScanning = true;
+      _sourceStatus = null;
+    });
+    try {
+      final result = await appState.api.scanRecruitingSources(
+        token: token,
+        athleteId: athlete.athleteId,
+        sourceLinks: links,
+      );
+      final refreshed =
+          await appState.api.fetchRecruitingAthletes(token: token);
+      if (!mounted) return;
+      setState(() {
+        _athletes = refreshed;
+        _sourceStatus =
+            'Scan complete: ${result.sourceRankings.length} wrestler rows, ${result.schoolRankings.length} school rows.';
+        _isScanning = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _sourceStatus = error.toString().replaceFirst('Exception: ', '');
+        _isScanning = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final visible = _athletes.where((athlete) {
       return switch (_filter) {
-        'priority' => athlete.status == 'Priority',
-        'seniors' => athlete.grade == 'Senior',
-        'missing' => athlete.status == 'Missing media',
-        'watchlist' => athlete.status == 'Watchlist',
+        'priority' => athlete.isFeatured || athlete.isActivelyLooking,
+        'seniors' => athlete.graduationYear <= DateTime.now().year + 1,
+        'missing' => athlete.highlightCount == 0,
+        'watchlist' => athlete.sourceRankings.isNotEmpty,
         _ => true,
       };
     }).toList();
@@ -95,19 +172,35 @@ class _RecruitingCenterScreenState extends State<RecruitingCenterScreen> {
     final selected = visible.isEmpty ? null : visible[_selectedIndex];
 
     return LayoutBuilder(
-          builder: (context, constraints) {
-            final isWide = constraints.maxWidth >= 1120;
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 1120;
 
-          return ListView(
-            padding: EdgeInsets.zero,
-            children: [
-              const SubpageHeader(
-                title: 'Recruiting Center',
-                subtitle:
-                    'Track athlete readiness, outreach, and exposure from one recruiting board.',
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              const _RecruitingSummaryRow(),
+        return ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            const SubpageHeader(
+              title: 'Recruiting Center',
+              subtitle:
+                  'Track athlete readiness, outreach, and exposure from one recruiting board.',
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            if (_isLoading)
+              const _RecruitingLoadingPanel()
+            else if (_error != null)
+              _RecruitingMessagePanel(
+                title: 'Recruiting data did not load',
+                message: _error!,
+                actionLabel: 'Retry',
+                onAction: _loadRecruitingData,
+              )
+            else if (_athletes.isEmpty)
+              const _RecruitingMessagePanel(
+                title: 'No recruiting profiles yet',
+                message:
+                    'Create athlete recruiting profiles first, then Pin IQ can track verified rankings and records from public sources.',
+              )
+            else ...[
+              _RecruitingSummaryRow(athletes: _athletes),
               const SizedBox(height: AppSpacing.xl),
               if (isWide)
                 Row(
@@ -123,7 +216,7 @@ class _RecruitingCenterScreenState extends State<RecruitingCenterScreen> {
                         }),
                         athletes: visible,
                         selectedIndex: _selectedIndex,
-                        onSelect: (index) => setState(() => _selectedIndex = index),
+                        onSelect: (index) => _selectAthlete(index, visible),
                       ),
                     ),
                     const SizedBox(width: AppSpacing.lg),
@@ -131,7 +224,19 @@ class _RecruitingCenterScreenState extends State<RecruitingCenterScreen> {
                       flex: 4,
                       child: selected == null
                           ? const _RecruitingEmptyPanel()
-                          : _RecruitingDetailPanel(athlete: selected),
+                          : _RecruitingDetailPanel(
+                              athlete: selected,
+                              sourceLinks:
+                                  _sourceLinksByAthlete[selected.athleteId] ??
+                                      const [],
+                              isSavingLinks: _isSavingLinks,
+                              isScanning: _isScanning,
+                              sourceStatus: _sourceStatus,
+                              onSaveSourceLinks: (links) =>
+                                  _saveSourceLinks(selected, links),
+                              onScanSourceLinks: () =>
+                                  _scanSourceLinks(selected),
+                            ),
                     ),
                   ],
                 )
@@ -144,13 +249,23 @@ class _RecruitingCenterScreenState extends State<RecruitingCenterScreen> {
                   }),
                   athletes: visible,
                   selectedIndex: _selectedIndex,
-                  onSelect: (index) => setState(() => _selectedIndex = index),
+                  onSelect: (index) => _selectAthlete(index, visible),
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 if (selected == null)
                   const _RecruitingEmptyPanel()
-              else
-                  _RecruitingDetailPanel(athlete: selected),
+                else
+                  _RecruitingDetailPanel(
+                    athlete: selected,
+                    sourceLinks:
+                        _sourceLinksByAthlete[selected.athleteId] ?? const [],
+                    isSavingLinks: _isSavingLinks,
+                    isScanning: _isScanning,
+                    sourceStatus: _sourceStatus,
+                    onSaveSourceLinks: (links) =>
+                        _saveSourceLinks(selected, links),
+                    onScanSourceLinks: () => _scanSourceLinks(selected),
+                  ),
               ],
               const SizedBox(height: AppSpacing.xl),
               const SectionHeader(title: 'Outreach pipeline'),
@@ -158,26 +273,39 @@ class _RecruitingCenterScreenState extends State<RecruitingCenterScreen> {
               _RecruitingPipelineRow(athletes: _athletes),
               const SizedBox(height: AppSpacing.xl),
             ],
-          );
-          },
+          ],
+        );
+      },
     );
   }
 }
 
 class _RecruitingSummaryRow extends StatelessWidget {
-  const _RecruitingSummaryRow();
+  const _RecruitingSummaryRow({required this.athletes});
+
+  final List<RecruitingAthleteModel> athletes;
 
   @override
   Widget build(BuildContext context) {
+    final priority = athletes
+        .where((athlete) => athlete.isFeatured || athlete.isActivelyLooking)
+        .length;
+    final verified =
+        athletes.where((athlete) => athlete.sourceRankings.isNotEmpty).length;
+    final schools = athletes
+        .map((athlete) => athlete.schoolTeam)
+        .where((school) => school != null && school.trim().isNotEmpty)
+        .toSet()
+        .length;
     return Wrap(
       spacing: AppSpacing.md,
       runSpacing: AppSpacing.md,
-      children: const [
+      children: [
         SizedBox(
           width: 240,
           child: _RecruitingMetricCard(
             label: 'Profiles',
-            value: '9',
+            value: '${athletes.length}',
             note: 'active athlete pages',
             color: Color(0xFF8B5CF6),
           ),
@@ -186,7 +314,7 @@ class _RecruitingSummaryRow extends StatelessWidget {
           width: 240,
           child: _RecruitingMetricCard(
             label: 'Priority',
-            value: '4',
+            value: '$priority',
             note: 'athletes needing push',
             color: Color(0xFFF59E0B),
           ),
@@ -194,9 +322,9 @@ class _RecruitingSummaryRow extends StatelessWidget {
         SizedBox(
           width: 240,
           child: _RecruitingMetricCard(
-            label: 'Highlights',
-            value: '27',
-            note: 'linked clips',
+            label: 'Verified',
+            value: '$verified',
+            note: 'source-ranked athletes',
             color: Color(0xFF38BDF8),
           ),
         ),
@@ -204,7 +332,7 @@ class _RecruitingSummaryRow extends StatelessWidget {
           width: 240,
           child: _RecruitingMetricCard(
             label: 'Schools',
-            value: '11',
+            value: '$schools',
             note: 'tracked programs',
             color: AppColors.success,
           ),
@@ -225,7 +353,7 @@ class _RecruitingBoard extends StatelessWidget {
 
   final String filter;
   final ValueChanged<String> onFilterChanged;
-  final List<_RecruitingAthlete> athletes;
+  final List<RecruitingAthleteModel> athletes;
   final int selectedIndex;
   final ValueChanged<int> onSelect;
 
@@ -245,7 +373,8 @@ class _RecruitingBoard extends StatelessWidget {
             if (constraints.maxWidth >= 560)
               Row(
                 children: [
-                  Text('Athlete board', style: AppTextStyles.cardTitle.copyWith(fontSize: 22)),
+                  Text('Athlete board',
+                      style: AppTextStyles.cardTitle.copyWith(fontSize: 22)),
                   const Spacer(),
                   ElevatedButton.icon(
                     onPressed: () {},
@@ -255,7 +384,8 @@ class _RecruitingBoard extends StatelessWidget {
                 ],
               )
             else ...[
-              Text('Athlete board', style: AppTextStyles.cardTitle.copyWith(fontSize: 22)),
+              Text('Athlete board',
+                  style: AppTextStyles.cardTitle.copyWith(fontSize: 22)),
               const SizedBox(height: AppSpacing.sm),
               ElevatedButton.icon(
                 onPressed: () {},
@@ -263,41 +393,42 @@ class _RecruitingBoard extends StatelessWidget {
                 label: const Text('Export share pack'),
               ),
             ],
-          const SizedBox(height: AppSpacing.md),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                for (final chip in const [
-                  ('all', 'All'),
-                  ('priority', 'Priority'),
-                  ('seniors', 'Seniors'),
-                  ('watchlist', 'Watchlist'),
-                  ('missing', 'Missing media'),
-                ])
-                  Padding(
-                    padding: const EdgeInsets.only(right: AppSpacing.xs),
-                    child: ChoiceChip(
-                      label: Text(chip.$2),
-                      selected: filter == chip.$1,
-                      onSelected: (_) => onFilterChanged(chip.$1),
+            const SizedBox(height: AppSpacing.md),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  for (final chip in const [
+                    ('all', 'All'),
+                    ('priority', 'Priority'),
+                    ('seniors', 'Seniors'),
+                    ('watchlist', 'Watchlist'),
+                    ('missing', 'Missing media'),
+                  ])
+                    Padding(
+                      padding: const EdgeInsets.only(right: AppSpacing.xs),
+                      child: ChoiceChip(
+                        label: Text(chip.$2),
+                        selected: filter == chip.$1,
+                        onSelected: (_) => onFilterChanged(chip.$1),
+                      ),
                     ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          ...List.generate(athletes.length, (index) {
-            final athlete = athletes[index];
-            return Padding(
-              padding: EdgeInsets.only(bottom: index == athletes.length - 1 ? 0 : AppSpacing.sm),
-              child: _RecruitingRow(
-                athlete: athlete,
-                selected: index == selectedIndex,
-                onTap: () => onSelect(index),
+                ],
               ),
-            );
-          }),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            ...List.generate(athletes.length, (index) {
+              final athlete = athletes[index];
+              return Padding(
+                padding: EdgeInsets.only(
+                    bottom: index == athletes.length - 1 ? 0 : AppSpacing.sm),
+                child: _RecruitingRow(
+                  athlete: athlete,
+                  selected: index == selectedIndex,
+                  onTap: () => onSelect(index),
+                ),
+              );
+            }),
           ],
         ),
       ),
@@ -312,16 +443,17 @@ class _RecruitingRow extends StatelessWidget {
     required this.onTap,
   });
 
-  final _RecruitingAthlete athlete;
+  final RecruitingAthleteModel athlete;
   final bool selected;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final accent = switch (athlete.status) {
+    final status = _statusLabel(athlete);
+    final accent = switch (status) {
       'Priority' => const Color(0xFFF59E0B),
       'Missing media' => const Color(0xFFEF4444),
-      'Ready' => AppColors.success,
+      'Verified' => AppColors.success,
       _ => const Color(0xFF8B5CF6),
     };
 
@@ -332,9 +464,13 @@ class _RecruitingRow extends StatelessWidget {
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
-          color: selected ? AppColors.surfaceElevated : AppColors.surface.withValues(alpha: 0.72),
+          color: selected
+              ? AppColors.surfaceElevated
+              : AppColors.surface.withValues(alpha: 0.72),
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: selected ? accent.withValues(alpha: 0.4) : AppColors.border),
+          border: Border.all(
+              color:
+                  selected ? accent.withValues(alpha: 0.4) : AppColors.border),
         ),
         child: Row(
           children: [
@@ -342,7 +478,7 @@ class _RecruitingRow extends StatelessWidget {
               radius: 24,
               backgroundColor: accent.withValues(alpha: 0.18),
               child: Text(
-                athlete.name.substring(0, 1),
+                athlete.athleteName.substring(0, 1),
                 style: AppTextStyles.bodyStrong.copyWith(color: accent),
               ),
             ),
@@ -351,10 +487,10 @@ class _RecruitingRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(athlete.name, style: AppTextStyles.bodyStrong),
+                  Text(athlete.athleteName, style: AppTextStyles.bodyStrong),
                   const SizedBox(height: AppSpacing.xxs),
                   Text(
-                    '${athlete.grade} • ${athlete.weightClass} lbs • ${athlete.interest}',
+                    '${_gradeLabel(athlete.graduationYear)} • ${athlete.weightClass} lbs • ${athlete.record}',
                     style: AppTextStyles.caption,
                   ),
                   const SizedBox(height: AppSpacing.xs),
@@ -362,8 +498,10 @@ class _RecruitingRow extends StatelessWidget {
                     spacing: AppSpacing.xs,
                     runSpacing: AppSpacing.xs,
                     children: [
-                      _RecruitingTag(label: athlete.status, color: accent),
-                      _RecruitingTag(label: athlete.completeness, color: const Color(0xFF38BDF8)),
+                      _RecruitingTag(label: status, color: accent),
+                      _RecruitingTag(
+                          label: _rankingLabel(athlete),
+                          color: const Color(0xFF38BDF8)),
                     ],
                   ),
                 ],
@@ -377,10 +515,46 @@ class _RecruitingRow extends StatelessWidget {
   }
 }
 
-class _RecruitingDetailPanel extends StatelessWidget {
-  const _RecruitingDetailPanel({required this.athlete});
+String _gradeLabel(int graduationYear) {
+  final currentYear = DateTime.now().year;
+  final yearsLeft = graduationYear - currentYear;
+  if (yearsLeft <= 0) return 'Senior';
+  if (yearsLeft == 1) return 'Junior';
+  if (yearsLeft == 2) return 'Sophomore';
+  return 'Freshman';
+}
 
-  final _RecruitingAthlete athlete;
+String _statusLabel(RecruitingAthleteModel athlete) {
+  if (athlete.isFeatured || athlete.isActivelyLooking) return 'Priority';
+  if (athlete.sourceRankings.isNotEmpty) return 'Verified';
+  if (athlete.highlightCount == 0) return 'Missing media';
+  return 'Ready';
+}
+
+String _rankingLabel(RecruitingAthleteModel athlete) {
+  if (athlete.sourceRankings.isEmpty) return 'No source rank';
+  final ranking = athlete.sourceRankings.first;
+  return '${ranking.source} ${ranking.ranking ?? ranking.record ?? 'verified'}';
+}
+
+class _RecruitingDetailPanel extends StatelessWidget {
+  const _RecruitingDetailPanel({
+    required this.athlete,
+    required this.sourceLinks,
+    required this.isSavingLinks,
+    required this.isScanning,
+    required this.onSaveSourceLinks,
+    required this.onScanSourceLinks,
+    this.sourceStatus,
+  });
+
+  final RecruitingAthleteModel athlete;
+  final List<RecruitingSourceLinkModel> sourceLinks;
+  final bool isSavingLinks;
+  final bool isScanning;
+  final String? sourceStatus;
+  final ValueChanged<List<RecruitingSourceLinkModel>> onSaveSourceLinks;
+  final VoidCallback onScanSourceLinks;
 
   @override
   Widget build(BuildContext context) {
@@ -400,10 +574,11 @@ class _RecruitingDetailPanel extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(athlete.name, style: AppTextStyles.sectionTitle),
+                    Text(athlete.athleteName,
+                        style: AppTextStyles.sectionTitle),
                     const SizedBox(height: AppSpacing.xxs),
                     Text(
-                      '${athlete.grade} • ${athlete.weightClass} lbs • ${athlete.interest}',
+                      '${_gradeLabel(athlete.graduationYear)} • ${athlete.weightClass} lbs • ${athlete.record}',
                       style: AppTextStyles.body,
                     ),
                   ],
@@ -417,70 +592,72 @@ class _RecruitingDetailPanel extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
-          Text(athlete.summary, style: AppTextStyles.body.copyWith(color: AppColors.textPrimary)),
+          Text(
+            [
+              if (athlete.schoolTeam != null) athlete.schoolTeam!,
+              if (athlete.locationLabel != null) athlete.locationLabel!,
+              if (athlete.height != null) athlete.height!,
+            ].join(' • '),
+            style: AppTextStyles.body.copyWith(color: AppColors.textPrimary),
+          ),
           const SizedBox(height: AppSpacing.lg),
           Row(
             children: [
               Expanded(
                 child: _RecruitingMetricCard(
-                  label: 'Readiness',
-                  value: athlete.completeness,
-                  note: 'profile completion',
+                  label: 'Record',
+                  value: athlete.record,
+                  note: 'profile record',
                   color: const Color(0xFF8B5CF6),
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: _RecruitingMetricCard(
-                  label: 'Interest',
-                  value: athlete.interest,
-                  note: 'tracked colleges',
+                  label: 'Sources',
+                  value: '${athlete.sourceRankings.length}',
+                  note: 'verified ranking rows',
                   color: const Color(0xFF38BDF8),
                 ),
               ),
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
-          const SectionHeader(title: 'Next moves'),
+          const SectionHeader(title: 'Verified rankings'),
           const SizedBox(height: AppSpacing.md),
-          ...athlete.details.map(
-            (detail) => Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.only(top: 6),
-                    child: Icon(Icons.check_circle_outline_rounded,
-                        size: 18, color: Color(0xFF8B5CF6)),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(child: Text(detail, style: AppTextStyles.body)),
-                ],
+          if (athlete.sourceRankings.isEmpty && athlete.schoolRankings.isEmpty)
+            Text('No verified source rankings yet.', style: AppTextStyles.body)
+          else ...[
+            for (final ranking in athlete.sourceRankings)
+              _VerifiedRankingRow(
+                title: ranking.source,
+                value: ranking.ranking ?? ranking.record ?? 'Verified',
+                note: [
+                  if (ranking.weightClass != null) '${ranking.weightClass} lbs',
+                  if (ranking.season != null) ranking.season!,
+                  if (ranking.lastChecked != null)
+                    'checked ${ranking.lastChecked}',
+                ].join(' • '),
               ),
-            ),
-          ),
+            for (final ranking in athlete.schoolRankings)
+              _VerifiedRankingRow(
+                title: ranking.source,
+                value: [
+                  if (ranking.stateRank != null) 'KY #${ranking.stateRank}',
+                  if (ranking.nationalRank != null)
+                    'US #${ranking.nationalRank}',
+                ].join(' • '),
+                note: ranking.schoolName,
+              ),
+          ],
           const SizedBox(height: AppSpacing.lg),
-          Wrap(
-            spacing: AppSpacing.sm,
-            runSpacing: AppSpacing.sm,
-            children: [
-              ElevatedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.video_library_outlined),
-                label: const Text('Add highlight'),
-              ),
-              OutlinedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.note_add_outlined),
-                label: const Text('Add coach note'),
-              ),
-              OutlinedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.outbound_rounded),
-                label: const Text('Prepare outreach'),
-              ),
-            ],
+          _SourceLinksPanel(
+            links: sourceLinks,
+            isSaving: isSavingLinks,
+            isScanning: isScanning,
+            status: sourceStatus,
+            onSave: onSaveSourceLinks,
+            onScan: onScanSourceLinks,
           ),
         ],
       ),
@@ -488,26 +665,40 @@ class _RecruitingDetailPanel extends StatelessWidget {
   }
 }
 
-class _RecruitingAthlete {
-  const _RecruitingAthlete({
-    required this.name,
-    required this.grade,
-    required this.weightClass,
-    required this.status,
-    required this.completeness,
-    required this.interest,
-    required this.summary,
-    required this.details,
+class _VerifiedRankingRow extends StatelessWidget {
+  const _VerifiedRankingRow({
+    required this.title,
+    required this.value,
+    required this.note,
   });
 
-  final String name;
-  final String grade;
-  final String weightClass;
-  final String status;
-  final String completeness;
-  final String interest;
-  final String summary;
-  final List<String> details;
+  final String title;
+  final String value;
+  final String note;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: Row(
+        children: [
+          const Icon(Icons.verified_outlined, color: AppColors.success),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AppTextStyles.bodyStrong),
+                if (note.isNotEmpty) Text(note, style: AppTextStyles.caption),
+              ],
+            ),
+          ),
+          Text(value.isEmpty ? 'Verified' : value,
+              style: AppTextStyles.bodyStrong),
+        ],
+      ),
+    );
+  }
 }
 
 class _RecruitingTag extends StatelessWidget {
@@ -530,6 +721,151 @@ class _RecruitingTag extends StatelessWidget {
       child: Text(
         label,
         style: AppTextStyles.caption.copyWith(color: AppColors.textPrimary),
+      ),
+    );
+  }
+}
+
+class _SourceLinksPanel extends StatefulWidget {
+  const _SourceLinksPanel({
+    required this.links,
+    required this.isSaving,
+    required this.isScanning,
+    required this.onSave,
+    required this.onScan,
+    this.status,
+  });
+
+  final List<RecruitingSourceLinkModel> links;
+  final bool isSaving;
+  final bool isScanning;
+  final String? status;
+  final ValueChanged<List<RecruitingSourceLinkModel>> onSave;
+  final VoidCallback onScan;
+
+  @override
+  State<_SourceLinksPanel> createState() => _SourceLinksPanelState();
+}
+
+class _SourceLinksPanelState extends State<_SourceLinksPanel> {
+  static const _sources = [
+    'KentuckyMat',
+    'TrackWrestling',
+    'FloWrestling',
+    'USA Bracketing'
+  ];
+  late final Map<String, TextEditingController> _controllers;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllers = {
+      for (final source in _sources)
+        source: TextEditingController(text: _urlFor(source)),
+    };
+  }
+
+  @override
+  void didUpdateWidget(covariant _SourceLinksPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.links == widget.links) return;
+    for (final source in _sources) {
+      _controllers[source]!.text = _urlFor(source);
+    }
+  }
+
+  String _urlFor(String source) {
+    for (final link in widget.links) {
+      if (link.source.toLowerCase() == source.toLowerCase()) return link.url;
+    }
+    return '';
+  }
+
+  List<RecruitingSourceLinkModel> _currentLinks() {
+    return _sources
+        .map((source) => RecruitingSourceLinkModel(
+              source: source,
+              url: _controllers[source]!.text.trim(),
+            ))
+        .where((link) => link.url.isNotEmpty)
+        .toList();
+  }
+
+  @override
+  void dispose() {
+    for (final controller in _controllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasLinks = _currentLinks().isNotEmpty;
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceElevated.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text('Source links', style: AppTextStyles.cardTitle),
+              const Spacer(),
+              if (widget.isSaving || widget.isScanning)
+                const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          for (final source in _sources) ...[
+            TextField(
+              controller: _controllers[source],
+              decoration: InputDecoration(
+                labelText: source,
+                hintText: source == 'KentuckyMat'
+                    ? 'https://kentuckymat.com/...'
+                    : source == 'TrackWrestling'
+                        ? 'https://www.trackwrestling.com/...'
+                        : 'Public ranking/profile URL',
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+          ],
+          if (widget.status != null) ...[
+            const SizedBox(height: AppSpacing.xs),
+            Text(widget.status!,
+                style: AppTextStyles.caption
+                    .copyWith(color: AppColors.textPrimary)),
+          ],
+          const SizedBox(height: AppSpacing.md),
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: [
+              ElevatedButton.icon(
+                onPressed: widget.isSaving
+                    ? null
+                    : () => widget.onSave(_currentLinks()),
+                icon: const Icon(Icons.save_outlined),
+                label: const Text('Save links'),
+              ),
+              OutlinedButton.icon(
+                onPressed:
+                    widget.isScanning || !hasLinks ? null : widget.onScan,
+                icon: const Icon(Icons.radar_outlined),
+                label: const Text('Scan now'),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -591,16 +927,75 @@ class _RecruitingEmptyPanel extends StatelessWidget {
   }
 }
 
-class _RecruitingPipelineRow extends StatelessWidget {
-  const _RecruitingPipelineRow({required this.athletes});
-
-  final List<_RecruitingAthlete> athletes;
+class _RecruitingLoadingPanel extends StatelessWidget {
+  const _RecruitingLoadingPanel();
 
   @override
   Widget build(BuildContext context) {
-    final ready = athletes.where((athlete) => athlete.status == 'Ready' || athlete.status == 'Priority').length;
-    final missing = athletes.where((athlete) => athlete.status == 'Missing media').length;
-    final seniors = athletes.where((athlete) => athlete.grade == 'Senior').length;
+    return const Padding(
+      padding: EdgeInsets.all(AppSpacing.xl),
+      child: Center(child: CircularProgressIndicator()),
+    );
+  }
+}
+
+class _RecruitingMessagePanel extends StatelessWidget {
+  const _RecruitingMessagePanel({
+    required this.title,
+    required this.message,
+    this.actionLabel,
+    this.onAction,
+  });
+
+  final String title;
+  final String message;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: AppTextStyles.cardTitle),
+          const SizedBox(height: AppSpacing.sm),
+          Text(message, style: AppTextStyles.body),
+          if (actionLabel != null && onAction != null) ...[
+            const SizedBox(height: AppSpacing.md),
+            OutlinedButton(
+              onPressed: onAction,
+              child: Text(actionLabel!),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _RecruitingPipelineRow extends StatelessWidget {
+  const _RecruitingPipelineRow({required this.athletes});
+
+  final List<RecruitingAthleteModel> athletes;
+
+  @override
+  Widget build(BuildContext context) {
+    final ready = athletes
+        .where((athlete) =>
+            athlete.sourceRankings.isNotEmpty || athlete.isFeatured)
+        .length;
+    final missing =
+        athletes.where((athlete) => athlete.highlightCount == 0).length;
+    final seniors = athletes
+        .where((athlete) => athlete.graduationYear <= DateTime.now().year + 1)
+        .length;
 
     return Wrap(
       spacing: AppSpacing.md,

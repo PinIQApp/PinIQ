@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 
 import '../models/messaging_models.dart';
 import '../models/ai_replay_models.dart';
+import '../models/recruiting_models.dart';
 import '../models/team_model.dart';
 import '../models/tournament_models.dart';
 import '../models/user_profile.dart';
@@ -847,6 +848,101 @@ class ApiService {
       throw Exception(data['detail'] ?? 'Live tournament scan failed');
     }
     return data;
+  }
+
+  Future<List<RecruitingAthleteModel>> fetchRecruitingAthletes({
+    required String token,
+    bool openOnly = true,
+    String sortBy = 'updated',
+  }) async {
+    final uri = Uri.parse('$baseUrl/api/v1/recruiting/athletes').replace(
+      queryParameters: {
+        'open_only': '$openOnly',
+        'sort_by': sortBy,
+        'limit': '100',
+      },
+    );
+    final response = await _get(
+      uri,
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    final data = jsonDecode(response.body);
+    if (response.statusCode >= 400) {
+      throw Exception((data as Map<String, dynamic>)['detail'] ??
+          'Recruiting athletes failed');
+    }
+    return (data as List<dynamic>)
+        .map((item) =>
+            RecruitingAthleteModel.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<RecruitingSourceLinkModel>> fetchRecruitingSourceLinks({
+    required String token,
+    required int athleteId,
+  }) async {
+    final response = await _get(
+      Uri.parse('$baseUrl/api/v1/recruiting/athlete/$athleteId/source-links'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode >= 400) {
+      throw Exception(data['detail'] ?? 'Recruiting source links failed');
+    }
+    return (data['source_links'] as List<dynamic>? ?? const [])
+        .map((item) =>
+            RecruitingSourceLinkModel.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<RecruitingSourceLinkModel>> saveRecruitingSourceLinks({
+    required String token,
+    required int athleteId,
+    required List<RecruitingSourceLinkModel> sourceLinks,
+  }) async {
+    final response = await _put(
+      Uri.parse('$baseUrl/api/v1/recruiting/athlete/$athleteId/source-links'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'source_links': sourceLinks.map((item) => item.toJson()).toList(),
+      }),
+    );
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode >= 400) {
+      throw Exception(data['detail'] ?? 'Save recruiting source links failed');
+    }
+    return (data['source_links'] as List<dynamic>? ?? const [])
+        .map((item) =>
+            RecruitingSourceLinkModel.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<RecruitingSourceScanResponseModel> scanRecruitingSources({
+    required String token,
+    required int athleteId,
+    required List<RecruitingSourceLinkModel> sourceLinks,
+    bool updateProfile = true,
+  }) async {
+    final response = await _post(
+      Uri.parse('$baseUrl/api/v1/recruiting/source-scan'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'athlete_id': athleteId,
+        'update_profile': updateProfile,
+        'source_links': sourceLinks.map((item) => item.toJson()).toList(),
+      }),
+    );
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode >= 400) {
+      throw Exception(data['detail'] ?? 'Recruiting source scan failed');
+    }
+    return RecruitingSourceScanResponseModel.fromJson(data);
   }
 
   Future<TournamentExternalModel> createManualTournament({
