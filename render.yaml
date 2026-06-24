@@ -53,3 +53,40 @@ services:
     dockerfilePath: ./frontend/Dockerfile.web
     plan: free
     healthCheckPath: /health
+
+  - type: cron
+    name: wrestletech-recruiting-source-scan
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerCommand: python scripts/run_recruiting_source_scan.py --limit 500 --show-failures
+    schedule: "0 7 * * *"
+    plan: starter
+    envVars:
+      - key: ENVIRONMENT
+        value: staging
+      - key: APP_NAME
+        value: WrestleTech Recruiting Scanner
+      - key: SECRET_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: AUTO_CREATE_SCHEMA
+        value: "false"
+      - key: SEED_DEMO_DATA_ON_STARTUP
+        value: "false"
+      - key: MEDIA_DIR
+        value: media
+      - key: STORAGE_PROVIDER
+        value: local
+      - key: PAYMENT_PROVIDER
+        value: mock
+      - key: SMS_PROVIDER
+        value: mock
+      - key: EMAIL_PROVIDER
+        value: mock
+      - key: PUSH_PROVIDER
+        value: mock
+      - key: NUTRITION_PROVIDER
+        value: mock
+      - key: ENABLE_STRICT_WRESTLER_SAFETY
+        value: "true"
