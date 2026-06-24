@@ -41,7 +41,7 @@ class _WorkoutCenterScreenState extends State<WorkoutCenterScreen> {
                   'Simple wrestling workouts athletes can follow and parents can understand.',
             ),
             const SizedBox(height: AppSpacing.lg),
-            _WorkoutHero(onOpenTimer: _openStanceTimer),
+            const _WorkoutHero(),
             const SizedBox(height: AppSpacing.lg),
             _TodayPlanPanel(onOpenTimer: _openStanceTimer),
             const SizedBox(height: AppSpacing.lg),
@@ -140,9 +140,7 @@ class _WorkoutCenterScreenState extends State<WorkoutCenterScreen> {
 }
 
 class _WorkoutHero extends StatelessWidget {
-  const _WorkoutHero({required this.onOpenTimer});
-
-  final VoidCallback onOpenTimer;
+  const _WorkoutHero();
 
   @override
   Widget build(BuildContext context) {
@@ -176,11 +174,6 @@ class _WorkoutHero extends StatelessWidget {
             spacing: AppSpacing.sm,
             runSpacing: AppSpacing.sm,
             children: [
-              ElevatedButton.icon(
-                onPressed: onOpenTimer,
-                icon: const Icon(Icons.timer_rounded),
-                label: const Text('Open stance timer'),
-              ),
               const _HeroPill(label: '5-30 min'),
               const _HeroPill(label: 'Parent friendly'),
               const _HeroPill(label: 'Safe at home'),
@@ -1728,7 +1721,7 @@ class _WorkoutBlock {
 
 const _workouts = [
   _WorkoutPlan(
-    title: 'Stance + motion timer',
+    title: 'Stance + motion',
     category: 'stance',
     description:
         'Short reaction round for footwork, level change, and defense.',
