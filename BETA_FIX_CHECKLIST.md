@@ -75,9 +75,25 @@ Use this file as the working checklist so fixes happen in small, verifiable chun
 - [ ] Show useful loading/error/empty states.
 - [ ] Improve tournament page visual layout.
 
-## 7. Verification + Deployment
+## 7. Recruiting Rankings + Pin IQ Ranking Engine
 
-- [ ] Run focused backend tests for changed backend logic.
+- [x] Add verified source ranking fields for wrestler records/rankings.
+- [x] Add school ranking fields for state and national rankings.
+- [x] Add public source scanner foundation for TrackWrestling, FloWrestling, USA Bracketing, and KentuckyMat links.
+- [x] Add KentuckyMat as an approved public Kentucky wrestling data source.
+- [x] Add API endpoint to scan public recruiting/ranking source URLs and optionally update the athlete profile.
+- [ ] Add frontend UI for coaches to paste/save ranking source URLs.
+- [ ] Add scheduled auto-scan job for saved public source URLs.
+- [ ] Add source-specific parser hardening for KentuckyMat ranking/results pages.
+- [ ] Add source-specific parser hardening for TrackWrestling public rankings pages.
+- [ ] Add Pin IQ-owned ranking formula from verified tournament results, record, opponent quality, placement, activity, recency, weight class, and school strength.
+- [ ] Add state-by-state school ranking board.
+- [ ] Add national school ranking board.
+- [ ] Add audit trail showing source URL, last scan date, and changed fields.
+
+## 8. Verification + Deployment
+
+- [x] Run focused backend tests for changed backend logic.
 - [x] Run focused tournament backend tests.
 - [x] Run `flutter analyze`.
 - [ ] Run Flutter web build.

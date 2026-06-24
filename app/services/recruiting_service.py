@@ -31,8 +31,13 @@ from app.schemas.recruiting import (
     RecruitingProfileUpdate,
     RecruitingProfileWriteResponse,
     RecruitingRecentMatchRead,
+    RecruitingSchoolRankingRead,
     RecruitingSearchParams,
     RecruitingSearchResponse,
+    RecruitingSourceRankingRead,
+    RecruitingSourceScanRequest,
+    RecruitingSourceScanResponse,
+    RecruitingSourceScanResultRead,
     RecruitingStatsMetricRead,
     RecruitingTrendingRead,
     RecruitingVisibilityRead,
@@ -40,9 +45,21 @@ from app.schemas.recruiting import (
     RecruitingWatchlistRead,
     RecruitingWatchlistResponse,
 )
+from app.services.recruiting_source_scanners import RecruitingSourceScannerError, scan_public_recruiting_source
 
 
 COACH_ROLES = {UserRole.coach, UserRole.assistant_coach, UserRole.admin}
+SCAN_ROLES = COACH_ROLES | {UserRole.athlete, UserRole.parent}
+RECRUITING_SOURCE_LABELS = {
+    "usa bracketing": "USA Bracketing",
+    "flowrestling": "FloWrestling",
+    "flow wrestling": "FloWrestling",
+    "flo wrestling": "FloWrestling",
+    "trackwrestling": "TrackWrestling",
+    "track wrestling": "TrackWrestling",
+    "kentuckymat": "KentuckyMat",
+    "kentucky mat": "KentuckyMat",
+}
 
 
 def _query_profile(db: Session, athlete_id: int) -> RecruitingProfile | None:
@@ -257,6 +274,81 @@ def _stats_metrics(profile: RecruitingProfile, snapshot: AthleteStatSnapshot | N
     return metrics
 
 
+def _source_rankings(profile: RecruitingProfile) -> list[RecruitingSourceRankingRead]:
+    summary = profile.stats_summary or {}
+    rows = summary.get("source_rankings") or []
+    rankings: list[RecruitingSourceRankingRead] = []
+    if not isinstance(rows, list):
+        return rankings
+
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        source = str(row.get("source") or "").strip()
+        source_label = RECRUITING_SOURCE_LABELS.get(source.lower())
+        if source_label is None:
+            continue
+        rankings.append(
+            RecruitingSourceRankingRead(
+                source=source_label,
+                record=row.get("record"),
+                ranking=row.get("ranking"),
+                weight_class=row.get("weight_class"),
+                season=row.get("season"),
+                profile_url=row.get("profile_url"),
+                last_checked=row.get("last_checked"),
+            )
+        )
+    return rankings
+
+
+def _school_rankings(profile: RecruitingProfile) -> list[RecruitingSchoolRankingRead]:
+    summary = profile.stats_summary or {}
+    rows = summary.get("school_rankings") or []
+    rankings: list[RecruitingSchoolRankingRead] = []
+    if not isinstance(rows, list):
+        return rankings
+
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        source = str(row.get("source") or "").strip()
+        school_name = str(row.get("school_name") or profile.school_team or "").strip()
+        if not source or not school_name:
+            continue
+        rankings.append(
+            RecruitingSchoolRankingRead(
+                source=source,
+                school_name=school_name,
+                state=row.get("state"),
+                state_rank=row.get("state_rank"),
+                national_rank=row.get("national_rank"),
+                division=row.get("division"),
+                season=row.get("season"),
+                profile_url=row.get("profile_url"),
+                last_checked=row.get("last_checked"),
+            )
+        )
+    return rankings
+
+
+def _merge_rankings(existing: list[dict], incoming: list[dict], *, key_fields: tuple[str, ...]) -> list[dict]:
+    merged: dict[tuple[str, ...], dict] = {}
+    for row in existing:
+        if not isinstance(row, dict):
+            continue
+        key = tuple(str(row.get(field) or "").strip().lower() for field in key_fields)
+        if any(not part for part in key):
+            continue
+        merged[key] = row
+    for row in incoming:
+        key = tuple(str(row.get(field) or "").strip().lower() for field in key_fields)
+        if any(not part for part in key):
+            continue
+        merged[key] = row
+    return list(merged.values())
+
+
 def _mask_value(value: str | None) -> str | None:
     if not value:
         return None
@@ -360,6 +452,8 @@ def _card_read(
         win_percentage=snapshot.win_percentage if snapshot else None,
         bonus_point_rate=snapshot.bonus_point_rate if snapshot else None,
         stats_metrics=_stats_metrics(profile, snapshot),
+        source_rankings=_source_rankings(profile),
+        school_rankings=_school_rankings(profile),
         achievements=list(profile.achievements or []),
         highlight_count=len(profile.highlights),
         updated_at=profile.updated_at,
@@ -411,6 +505,8 @@ def _profile_read(db: Session, profile: RecruitingProfile, current_user: User) -
         visibility_level=profile.visibility_level,
         contact_visibility=profile.contact_visibility,
         stats_metrics=_stats_metrics(profile, snapshot),
+        source_rankings=_source_rankings(profile),
+        school_rankings=_school_rankings(profile),
         record=_record_string(profile, snapshot),
         recent_matches=[_recent_match_read(item) for item in _recent_matches(db, profile.athlete_id)],
         highlights=[
@@ -749,3 +845,85 @@ def save_recruiting_note(
     note_read = RecruitingNoteRead.model_validate(note)
     note_read.tags = [tag.tag for tag in tags]
     return note_read
+
+
+def scan_recruiting_sources(
+    db: Session,
+    payload: RecruitingSourceScanRequest,
+    current_user: User,
+) -> RecruitingSourceScanResponse:
+    if current_user.role not in SCAN_ROLES:
+        raise HTTPException(status_code=403, detail="Not allowed to scan recruiting sources")
+
+    profile: RecruitingProfile | None = None
+    athlete_name = payload.athlete_name
+    school_name = payload.school_name
+    state = payload.state
+    if payload.athlete_id is not None:
+        profile = _get_profile_or_404(db, payload.athlete_id)
+        _assert_profile_visible(db, profile, current_user)
+        athlete_name = athlete_name or profile.athlete.full_name
+        school_name = school_name or profile.school_team
+        state = state or profile.location_label
+
+    all_source_rankings: list[RecruitingSourceRankingRead] = []
+    all_school_rankings: list[RecruitingSchoolRankingRead] = []
+    result_reads: list[RecruitingSourceScanResultRead] = []
+
+    for source_link in payload.source_links:
+        try:
+            result = scan_public_recruiting_source(
+                source=source_link.source,
+                url=source_link.url,
+                athlete_name=athlete_name,
+                school_name=school_name,
+                state=state,
+            )
+            all_source_rankings.extend(result.source_rankings)
+            all_school_rankings.extend(result.school_rankings)
+            result_reads.append(
+                RecruitingSourceScanResultRead(
+                    source=result.source,
+                    url=result.url,
+                    success=True,
+                    message=result.message,
+                    source_rankings=result.source_rankings,
+                    school_rankings=result.school_rankings,
+                )
+            )
+        except RecruitingSourceScannerError as exc:
+            result_reads.append(
+                RecruitingSourceScanResultRead(
+                    source=source_link.source,
+                    url=source_link.url,
+                    success=False,
+                    message=str(exc),
+                )
+            )
+
+    updated_profile = False
+    if payload.update_profile and profile is not None:
+        summary = dict(profile.stats_summary or {})
+        source_rows = [item.model_dump(mode="json", exclude_none=True) for item in all_source_rankings]
+        school_rows = [item.model_dump(mode="json", exclude_none=True) for item in all_school_rankings]
+        summary["source_rankings"] = _merge_rankings(
+            summary.get("source_rankings") or [],
+            source_rows,
+            key_fields=("source", "profile_url", "weight_class"),
+        )
+        summary["school_rankings"] = _merge_rankings(
+            summary.get("school_rankings") or [],
+            school_rows,
+            key_fields=("source", "profile_url", "school_name"),
+        )
+        profile.stats_summary = summary
+        db.flush()
+        updated_profile = True
+
+    return RecruitingSourceScanResponse(
+        scanned_at=datetime.utcnow(),
+        updated_profile=updated_profile,
+        source_rankings=all_source_rankings,
+        school_rankings=all_school_rankings,
+        results=result_reads,
+    )

@@ -51,6 +51,28 @@ class RecruitingStatsMetricRead(BaseModel):
     numeric_value: float | None = None
 
 
+class RecruitingSourceRankingRead(BaseModel):
+    source: str
+    record: str | None = None
+    ranking: str | None = None
+    weight_class: str | None = None
+    season: str | None = None
+    profile_url: str | None = None
+    last_checked: date | None = None
+
+
+class RecruitingSchoolRankingRead(BaseModel):
+    source: str
+    school_name: str
+    state: str | None = None
+    state_rank: int | None = None
+    national_rank: int | None = None
+    division: str | None = None
+    season: str | None = None
+    profile_url: str | None = None
+    last_checked: date | None = None
+
+
 class RecruitingRecentMatchRead(BaseModel):
     id: int
     opponent_name: str
@@ -145,6 +167,8 @@ class RecruitingAthleteCardRead(BaseModel):
     win_percentage: float | None = None
     bonus_point_rate: float | None = None
     stats_metrics: list[RecruitingStatsMetricRead] = Field(default_factory=list)
+    source_rankings: list[RecruitingSourceRankingRead] = Field(default_factory=list)
+    school_rankings: list[RecruitingSchoolRankingRead] = Field(default_factory=list)
     achievements: list[str] = Field(default_factory=list)
     highlight_count: int = 0
     updated_at: datetime
@@ -174,6 +198,8 @@ class RecruitingProfileRead(BaseModel):
     visibility_level: RecruitingVisibilityLevel
     contact_visibility: RecruitingContactVisibility
     stats_metrics: list[RecruitingStatsMetricRead] = Field(default_factory=list)
+    source_rankings: list[RecruitingSourceRankingRead] = Field(default_factory=list)
+    school_rankings: list[RecruitingSchoolRankingRead] = Field(default_factory=list)
     record: str
     recent_matches: list[RecruitingRecentMatchRead] = Field(default_factory=list)
     highlights: list[RecruitingHighlightRead] = Field(default_factory=list)
@@ -182,6 +208,37 @@ class RecruitingProfileRead(BaseModel):
     visible_as: str
     parent_visibility_required: bool
     updated_at: datetime
+
+
+class RecruitingSourceLink(BaseModel):
+    source: str = Field(min_length=2, max_length=80)
+    url: str = Field(min_length=8, max_length=1000)
+
+
+class RecruitingSourceScanRequest(BaseModel):
+    athlete_id: int | None = None
+    athlete_name: str | None = Field(default=None, max_length=160)
+    school_name: str | None = Field(default=None, max_length=160)
+    state: str | None = Field(default=None, max_length=30)
+    update_profile: bool = False
+    source_links: list[RecruitingSourceLink] = Field(min_length=1, max_length=8)
+
+
+class RecruitingSourceScanResultRead(BaseModel):
+    source: str
+    url: str
+    success: bool
+    message: str | None = None
+    source_rankings: list[RecruitingSourceRankingRead] = Field(default_factory=list)
+    school_rankings: list[RecruitingSchoolRankingRead] = Field(default_factory=list)
+
+
+class RecruitingSourceScanResponse(BaseModel):
+    scanned_at: datetime
+    updated_profile: bool = False
+    source_rankings: list[RecruitingSourceRankingRead] = Field(default_factory=list)
+    school_rankings: list[RecruitingSchoolRankingRead] = Field(default_factory=list)
+    results: list[RecruitingSourceScanResultRead] = Field(default_factory=list)
 
 
 class RecruitingBoardRead(BaseModel):

@@ -16,6 +16,8 @@ from app.schemas.recruiting import (
     RecruitingProfileWriteResponse,
     RecruitingSearchParams,
     RecruitingSearchResponse,
+    RecruitingSourceScanRequest,
+    RecruitingSourceScanResponse,
     RecruitingTrendingRead,
     RecruitingWatchlistCreate,
     RecruitingWatchlistRead,
@@ -30,6 +32,7 @@ from app.services.recruiting_service import (
     list_recruiting_athletes,
     save_recruiting_note,
     save_watchlist_entry,
+    scan_recruiting_sources,
     search_recruiting_athletes,
     update_recruiting_profile,
 )
@@ -123,6 +126,18 @@ def get_recruiting_board_route(
     current_user=Depends(get_current_user),
 ):
     return get_recruiting_board(db, current_user=current_user)
+
+
+@router.post("/recruiting/source-scan", response_model=RecruitingSourceScanResponse)
+def post_recruiting_source_scan_route(
+    payload: RecruitingSourceScanRequest,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    result = scan_recruiting_sources(db, payload=payload, current_user=current_user)
+    if payload.update_profile:
+        db.commit()
+    return result
 
 
 @router.post("/recruiting/watchlist", response_model=RecruitingWatchlistResponse, status_code=status.HTTP_201_CREATED)
