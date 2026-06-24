@@ -94,6 +94,37 @@ class RecruitingPinIqRankingModel {
   }
 }
 
+class RecruitingSourceScanAuditModel {
+  const RecruitingSourceScanAuditModel({
+    required this.source,
+    required this.url,
+    required this.scannedAt,
+    required this.success,
+    required this.changedFields,
+    this.message,
+  });
+
+  final String source;
+  final String url;
+  final DateTime scannedAt;
+  final bool success;
+  final List<String> changedFields;
+  final String? message;
+
+  factory RecruitingSourceScanAuditModel.fromJson(Map<String, dynamic> json) {
+    return RecruitingSourceScanAuditModel(
+      source: json['source'] as String? ?? 'Unknown',
+      url: json['url'] as String? ?? '',
+      scannedAt: DateTime.parse(json['scanned_at'] as String),
+      success: json['success'] as bool? ?? false,
+      changedFields: (json['changed_fields'] as List<dynamic>? ?? const [])
+          .map((item) => item.toString())
+          .toList(),
+      message: json['message'] as String?,
+    );
+  }
+}
+
 class RecruitingAthleteModel {
   const RecruitingAthleteModel({
     required this.athleteId,
@@ -107,6 +138,7 @@ class RecruitingAthleteModel {
     required this.record,
     required this.sourceRankings,
     required this.schoolRankings,
+    required this.sourceScanAudit,
     required this.achievements,
     required this.highlightCount,
     required this.updatedAt,
@@ -140,6 +172,7 @@ class RecruitingAthleteModel {
   final RecruitingPinIqRankingModel? pinIqRanking;
   final List<RecruitingSourceRankingModel> sourceRankings;
   final List<RecruitingSchoolRankingModel> schoolRankings;
+  final List<RecruitingSourceScanAuditModel> sourceScanAudit;
   final List<String> achievements;
   final int highlightCount;
   final DateTime updatedAt;
@@ -173,6 +206,10 @@ class RecruitingAthleteModel {
           .toList(),
       schoolRankings: (json['school_rankings'] as List<dynamic>? ?? const [])
           .map((item) => RecruitingSchoolRankingModel.fromJson(
+              item as Map<String, dynamic>))
+          .toList(),
+      sourceScanAudit: (json['source_scan_audit'] as List<dynamic>? ?? const [])
+          .map((item) => RecruitingSourceScanAuditModel.fromJson(
               item as Map<String, dynamic>))
           .toList(),
       achievements: (json['achievements'] as List<dynamic>? ?? const [])

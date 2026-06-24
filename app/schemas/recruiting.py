@@ -82,6 +82,15 @@ class RecruitingPinIqRankingRead(BaseModel):
     factors: list[RecruitingStatsMetricRead] = Field(default_factory=list)
 
 
+class RecruitingSourceScanAuditRead(BaseModel):
+    source: str
+    url: str
+    scanned_at: datetime
+    success: bool
+    changed_fields: list[str] = Field(default_factory=list)
+    message: str | None = None
+
+
 class RecruitingSchoolBoardRowRead(BaseModel):
     school_name: str
     source: str
@@ -193,6 +202,7 @@ class RecruitingAthleteCardRead(BaseModel):
     source_rankings: list[RecruitingSourceRankingRead] = Field(default_factory=list)
     school_rankings: list[RecruitingSchoolRankingRead] = Field(default_factory=list)
     piniq_ranking: RecruitingPinIqRankingRead | None = None
+    source_scan_audit: list[RecruitingSourceScanAuditRead] = Field(default_factory=list)
     achievements: list[str] = Field(default_factory=list)
     highlight_count: int = 0
     updated_at: datetime
@@ -225,6 +235,7 @@ class RecruitingProfileRead(BaseModel):
     source_rankings: list[RecruitingSourceRankingRead] = Field(default_factory=list)
     school_rankings: list[RecruitingSchoolRankingRead] = Field(default_factory=list)
     piniq_ranking: RecruitingPinIqRankingRead | None = None
+    source_scan_audit: list[RecruitingSourceScanAuditRead] = Field(default_factory=list)
     record: str
     recent_matches: list[RecruitingRecentMatchRead] = Field(default_factory=list)
     highlights: list[RecruitingHighlightRead] = Field(default_factory=list)

@@ -209,6 +209,11 @@ def test_scan_recruiting_sources_can_update_existing_profile(client, db_session,
     assert result.updated_profile is True
     assert profile.stats_summary["source_rankings"][0]["record"] == "36-4"
     assert profile.stats_summary["school_rankings"][0]["state_rank"] == 5
+    audit = profile.stats_summary["source_scan_audit"][0]
+    assert audit["source"] == "KentuckyMat"
+    assert audit["url"] == "https://kentuckymat.com/rankings"
+    assert audit["success"] is True
+    assert audit["changed_fields"] == ["source_rankings", "school_rankings"]
 
 
 def test_saved_recruiting_source_scan_updates_profiles_with_saved_links(client, db_session, coach_auth_headers, monkeypatch):
@@ -287,3 +292,7 @@ def test_saved_recruiting_source_scan_updates_profiles_with_saved_links(client, 
     assert result.school_rankings_found == 1
     assert profile.stats_summary["source_rankings"][0]["ranking"] == "#2"
     assert profile.stats_summary["source_links"][0]["source"] == "KentuckyMat"
+    audit = profile.stats_summary["source_scan_audit"][0]
+    assert audit["source"] == "KentuckyMat"
+    assert audit["success"] is True
+    assert audit["changed_fields"] == ["source_rankings", "school_rankings"]

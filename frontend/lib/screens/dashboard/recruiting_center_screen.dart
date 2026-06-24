@@ -905,6 +905,8 @@ class _RecruitingDetailPanel extends StatelessWidget {
               ),
           ],
           const SizedBox(height: AppSpacing.lg),
+          _SourceScanAuditPanel(entries: athlete.sourceScanAudit),
+          const SizedBox(height: AppSpacing.lg),
           _SourceLinksPanel(
             links: sourceLinks,
             isSaving: isSavingLinks,
@@ -917,6 +919,95 @@ class _RecruitingDetailPanel extends StatelessWidget {
       ),
     );
   }
+}
+
+class _SourceScanAuditPanel extends StatelessWidget {
+  const _SourceScanAuditPanel({required this.entries});
+
+  final List<RecruitingSourceScanAuditModel> entries;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceElevated.withValues(alpha: 0.68),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Source audit', style: AppTextStyles.bodyStrong),
+          const SizedBox(height: AppSpacing.md),
+          if (entries.isEmpty)
+            Text('No source scans logged yet.', style: AppTextStyles.body)
+          else
+            for (final entry in entries.take(4))
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: _SourceScanAuditRow(entry: entry),
+              ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SourceScanAuditRow extends StatelessWidget {
+  const _SourceScanAuditRow({required this.entry});
+
+  final RecruitingSourceScanAuditModel entry;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = entry.success ? AppColors.success : AppColors.danger;
+    final changed = entry.changedFields.isEmpty
+        ? 'no ranking changes'
+        : entry.changedFields.join(', ');
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          entry.success ? Icons.check_circle_outline : Icons.error_outline,
+          color: color,
+          size: 20,
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(entry.source, style: AppTextStyles.bodyStrong),
+              const SizedBox(height: AppSpacing.xxs),
+              Text(
+                '${_shortDateTime(entry.scannedAt)} • $changed',
+                style: AppTextStyles.caption,
+              ),
+              Text(
+                entry.url,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.caption
+                    .copyWith(color: AppColors.textPrimary),
+              ),
+              if (entry.message != null && entry.message!.trim().isNotEmpty)
+                Text(entry.message!, style: AppTextStyles.caption),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+String _shortDateTime(DateTime value) {
+  final local = value.toLocal();
+  final month = local.month.toString().padLeft(2, '0');
+  final day = local.day.toString().padLeft(2, '0');
+  final hour = local.hour.toString().padLeft(2, '0');
+  final minute = local.minute.toString().padLeft(2, '0');
+  return '$month/$day $hour:$minute';
 }
 
 class _VerifiedRankingRow extends StatelessWidget {

@@ -94,7 +94,7 @@ Use this file as the working checklist so fixes happen in small, verifiable chun
 - [x] Add Pin IQ-owned ranking formula from verified tournament results, record, opponent quality, placement, activity, recency, weight class, and school strength.
 - [x] Add state-by-state school ranking board.
 - [x] Add national school ranking board.
-- [ ] Add audit trail showing source URL, last scan date, and changed fields.
+- [x] Add audit trail showing source URL, last scan date, and changed fields.
 
 ## 8. Verification + Deployment
 
