@@ -88,20 +88,35 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
       ? (double.tryParse(_targetWeightController.text.trim()) ?? _currentWeight)
       : _currentWeight;
   int get _daysToWeighIn => int.tryParse(_daysController.text.trim()) ?? 0;
+  double? get _bodyFatPercent =>
+      double.tryParse(_bodyFatController.text.trim());
+  bool get _lowBodyFatCut {
+    final bodyFat = _bodyFatPercent;
+    if (bodyFat == null || _goal != 'cut') return false;
+    return _sex == 'female' ? bodyFat < 14 : bodyFat < 8;
+  }
+
   double get _weightDelta => (_currentWeight - _targetWeight).clamp(0, 999);
   double get _weeklyLossRate {
     if (_daysToWeighIn <= 0) return _weightDelta;
-    return _weightDelta / (_daysToWeighIn / 7);
+    return _weightDelta / (_daysToWeighIn / 7).clamp(1, 999);
   }
 
   int get _riskScore {
     var score = 18;
     if (_goal == 'cut') {
-      score += (_weightDelta * 7).round();
+      if (_weightDelta >= 8 && _weeklyLossRate <= 1.25 && !_lowBodyFatCut) {
+        score += 6;
+      } else if (_weightDelta >= 8) {
+        score += 14;
+      }
+      if (_weeklyLossRate > 1.0) score += 6;
+      if (_weeklyLossRate > 1.25) score += 8;
+      if (_weeklyLossRate > 1.5) score += 18;
+      if (_weeklyLossRate > 2.0) score += 16;
       if (_daysToWeighIn <= 7) score += 18;
-      if (_daysToWeighIn <= 3) score += 12;
-      if (_weeklyLossRate > 1.5) score += 24;
-      if (_weeklyLossRate > 2.0) score += 14;
+      if (_daysToWeighIn <= 3) score += 14;
+      if (_lowBodyFatCut) score += 32;
     }
     if (_plannerMode == 'tournament_week') score += 10;
     if (_plannerMode == 'two_day_recovery') score += 12;

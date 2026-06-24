@@ -3,6 +3,7 @@ from app.models.nutrition import (
     ActivityLevel,
     CheckInRequest,
     Goal,
+    MealTemplate,
     NutritionPlanRequest,
     PracticeWindow,
     Sex,
@@ -137,6 +138,36 @@ def test_create_plan_family_budget_and_exclusions():
     assert all(item.price_source == "Walmart planning estimate" for item in plan.grocery_list)
     assert all(item.serving_size_note for item in plan.grocery_list)
     assert all(item.shopping_url and "walmart.com/search" in item.shopping_url for item in plan.grocery_list)
+
+
+def test_grocery_serving_sizes_scale_with_athlete_size():
+    base_payload = NutritionPlanRequest(
+        athlete_id="athlete-serving",
+        name="Serving Athlete",
+        age=17,
+        sex=Sex.MALE,
+        height_in=70,
+        weight_lbs=106,
+        target_weight_lbs=None,
+        body_fat_percent=14,
+        goal=Goal.MAINTAIN,
+        activity_level=ActivityLevel.HIGH,
+        training_phase=TrainingPhase.INSEASON,
+        practice_window=PracticeWindow.AFTERNOON,
+        days_to_weigh_in=30,
+        matches_this_week=1,
+        meal_template=MealTemplate.HIGH_PROTEIN,
+    )
+    light_plan = service.create_plan(base_payload)
+    heavy_plan = service.create_plan(base_payload.model_copy(update={"weight_lbs": 245, "height_in": 76}))
+
+    light_chicken = next(item for item in light_plan.grocery_list if item.item == "Grilled Chicken")
+    heavy_chicken = next(item for item in heavy_plan.grocery_list if item.item == "Grilled Chicken")
+
+    assert "small athlete" in light_chicken.quantity
+    assert "heavyweight athlete" in heavy_chicken.quantity
+    assert light_chicken.serving_size_note != heavy_chicken.serving_size_note
+    assert heavy_chicken.estimated_total_price > light_chicken.estimated_total_price
 
 
 def test_check_in_response_adjusts_for_low_energy_and_soreness():
