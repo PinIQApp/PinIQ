@@ -93,6 +93,27 @@ def _visible_lines(html: str) -> list[str]:
     return [line for line in lines if len(line) >= 3]
 
 
+def _clean_text(value: str) -> str:
+    text = re.sub(r"(?is)<(script|style).*?>.*?</\1>", " ", value)
+    text = re.sub(r"(?s)<[^>]+>", " ", text)
+    text = unescape(text).replace("\xa0", " ")
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _table_rows(html: str) -> list[list[str]]:
+    rows: list[list[str]] = []
+    for row_match in re.finditer(r"(?is)<tr\b[^>]*>(?P<row>.*?)</tr>", html):
+        row_html = row_match.group("row")
+        cells = [
+            _clean_text(cell_match.group("cell"))
+            for cell_match in re.finditer(r"(?is)<t[dh]\b[^>]*>(?P<cell>.*?)</t[dh]>", row_html)
+        ]
+        cells = [cell for cell in cells if cell]
+        if cells:
+            rows.append(cells)
+    return rows
+
+
 def _contains_all_name_tokens(line: str, name: str | None) -> bool:
     if not name:
         return False
@@ -109,12 +130,14 @@ def _record_from_line(line: str) -> str | None:
 
 
 def _rank_from_line(line: str, *, national: bool = False, state: bool = False) -> int | None:
-    label = "national" if national else "state" if state else r"(?:rank|ranking|#)"
-    patterns = [
-        rf"{label}\s*(?:rank|ranking)?\s*#?\s*(\d{{1,4}})",
-        r"#\s*(\d{1,4})\b",
-        r"\brank(?:ed|ing)?\s*(\d{1,4})\b",
-    ]
+    if national or state:
+        label = "national" if national else "state"
+        patterns = [rf"{label}\s*(?:rank|ranking)?\s*#?\s*(\d{{1,4}})"]
+    else:
+        patterns = [
+            r"(?:rank|ranking)\s*#?\s*(\d{1,4})\b",
+            r"#\s*(\d{1,4})\b",
+        ]
     for pattern in patterns:
         match = re.search(pattern, line, re.IGNORECASE)
         if match:
@@ -150,6 +173,96 @@ def _state_from_line(line: str, requested_state: str | None) -> str | None:
     return match.group(1) if match else requested_state
 
 
+def _is_kentuckymat_url(url: str) -> bool:
+    host = (urlparse(url).hostname or "").lower()
+    return host == "kentuckymat.com" or host.endswith(".kentuckymat.com")
+
+
+def _rank_from_cells(cells: list[str]) -> int | None:
+    if len(cells) == 1:
+        return _rank_from_line(cells[0])
+    for cell in cells[:3]:
+        match = re.search(r"#?\s*(\d{1,4})\b", cell)
+        if match:
+            return int(match.group(1))
+    return _rank_from_line(" ".join(cells))
+
+
+def _record_from_cells(cells: list[str]) -> str | None:
+    for cell in cells:
+        record = _record_from_line(cell)
+        if record:
+            return record
+    return None
+
+
+def _weight_from_cells(cells: list[str]) -> str | None:
+    for cell in cells:
+        weight = _weight_from_line(cell)
+        if weight:
+            return weight
+    return None
+
+
+def _parse_kentuckymat_rankings(
+    *,
+    html: str,
+    url: str,
+    athlete_name: str | None,
+    school_name: str | None,
+    state: str | None,
+) -> tuple[list[RecruitingSourceRankingRead], list[RecruitingSchoolRankingRead]]:
+    source_rankings: list[RecruitingSourceRankingRead] = []
+    school_rankings: list[RecruitingSchoolRankingRead] = []
+
+    for cells in _table_rows(html):
+        joined = " ".join(cells)
+        lowered = joined.lower()
+        if any(header in lowered for header in {"rank wrestler school", "weight wrestler", "team points"}):
+            continue
+
+        if _contains_all_name_tokens(joined, athlete_name):
+            rank = _rank_from_cells(cells)
+            source_rankings.append(
+                RecruitingSourceRankingRead(
+                    source="KentuckyMat",
+                    record=_record_from_cells(cells),
+                    ranking=f"#{rank}" if rank else _ranking_label(joined),
+                    weight_class=_weight_from_cells(cells),
+                    season=_season_from_line(joined),
+                    profile_url=url,
+                    last_checked=date.today(),
+                )
+            )
+            continue
+
+        if not school_name or school_name.lower() not in lowered:
+            continue
+
+        rank = _rank_from_cells(cells)
+        national_rank = _rank_from_line(joined, national=True)
+        state_rank = _rank_from_line(joined, state=True)
+        if state_rank is None and rank != national_rank:
+            state_rank = rank
+        if national_rank is None and "national" in lowered:
+            national_rank = rank
+
+        school_rankings.append(
+            RecruitingSchoolRankingRead(
+                source="KentuckyMat",
+                school_name=school_name,
+                state=_state_from_line(joined, state) or "KY",
+                state_rank=state_rank,
+                national_rank=national_rank,
+                season=_season_from_line(joined),
+                profile_url=url,
+                last_checked=date.today(),
+            )
+        )
+
+    return source_rankings, school_rankings
+
+
 def scan_public_recruiting_source(
     *,
     source: str,
@@ -164,6 +277,23 @@ def scan_public_recruiting_source(
 
     source_rankings: list[RecruitingSourceRankingRead] = []
     school_rankings: list[RecruitingSchoolRankingRead] = []
+
+    if source_label == "KentuckyMat" or _is_kentuckymat_url(url):
+        source_rankings, school_rankings = _parse_kentuckymat_rankings(
+            html=html,
+            url=url,
+            athlete_name=athlete_name,
+            school_name=school_name,
+            state=state,
+        )
+        if source_rankings or school_rankings:
+            return RecruitingSourceScanResult(
+                source="KentuckyMat",
+                url=url,
+                source_rankings=source_rankings,
+                school_rankings=school_rankings,
+                message=f"Scanned {len(_table_rows(html))} KentuckyMat table rows from public source.",
+            )
 
     for line in lines:
         if _contains_all_name_tokens(line, athlete_name):

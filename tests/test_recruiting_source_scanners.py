@@ -41,6 +41,40 @@ def test_public_recruiting_scan_extracts_kentuckymat_athlete_and_school_rows(mon
     assert result.school_rankings[0].national_rank == 41
 
 
+def test_kentuckymat_table_parser_extracts_rank_weight_record_and_school_rank(monkeypatch):
+    html = """
+    <html>
+      <body>
+        <table>
+          <tr><th>Rank</th><th>Weight</th><th>Wrestler</th><th>School</th><th>Record</th></tr>
+          <tr><td>2</td><td>132</td><td>Jordan Blake</td><td>Martin County</td><td>36-4</td></tr>
+        </table>
+        <table>
+          <tr><th>Rank</th><th>Team</th><th>State</th><th>National Rank</th></tr>
+          <tr><td>5</td><td>Martin County</td><td>KY</td><td>National Rank #41</td></tr>
+        </table>
+      </body>
+    </html>
+    """
+    monkeypatch.setattr(recruiting_source_scanners, "_fetch_html", lambda url: html)
+
+    result = recruiting_source_scanners.scan_public_recruiting_source(
+        source="KentuckyMat",
+        url="https://kentuckymat.com/rankings",
+        athlete_name="Jordan Blake",
+        school_name="Martin County",
+        state="KY",
+    )
+
+    assert len(result.source_rankings) == 1
+    assert result.source_rankings[0].ranking == "#2"
+    assert result.source_rankings[0].weight_class == "132"
+    assert result.source_rankings[0].record == "36-4"
+    assert len(result.school_rankings) == 1
+    assert result.school_rankings[0].state_rank == 5
+    assert result.school_rankings[0].national_rank == 41
+
+
 def test_recruiting_scan_does_not_invent_rankings_when_name_missing(monkeypatch):
     monkeypatch.setattr(
         recruiting_source_scanners,

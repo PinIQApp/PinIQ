@@ -89,7 +89,7 @@ Use this file as the working checklist so fixes happen in small, verifiable chun
   - [x] Remove paid Render cron from the blueprint.
   - [ ] Add free GitHub Actions scheduled workflow for nightly saved recruiting scans.
   - [ ] Add `RECRUITING_SCAN_DATABASE_URL` repository secret for the scheduled workflow.
-- [ ] Add source-specific parser hardening for KentuckyMat ranking/results pages.
+- [x] Add source-specific parser hardening for KentuckyMat ranking/results pages.
 - [ ] Add source-specific parser hardening for TrackWrestling public rankings pages.
 - [ ] Add Pin IQ-owned ranking formula from verified tournament results, record, opponent quality, placement, activity, recency, weight class, and school strength.
 - [ ] Add state-by-state school ranking board.
