@@ -82,6 +82,20 @@ class RecruitingPinIqRankingRead(BaseModel):
     factors: list[RecruitingStatsMetricRead] = Field(default_factory=list)
 
 
+class RecruitingSchoolBoardRowRead(BaseModel):
+    school_name: str
+    source: str
+    state: str | None = None
+    state_rank: int | None = None
+    national_rank: int | None = None
+    division: str | None = None
+    season: str | None = None
+    profile_url: str | None = None
+    last_checked: date | None = None
+    athlete_count: int = 0
+    athlete_names: list[str] = Field(default_factory=list)
+
+
 class RecruitingRecentMatchRead(BaseModel):
     id: int
     opponent_name: str
@@ -275,6 +289,8 @@ class RecruitingBoardRead(BaseModel):
     featured_athletes: list[RecruitingAthleteCardRead]
     recently_updated: list[RecruitingAthleteCardRead]
     top_performers: list[RecruitingAthleteCardRead]
+    state_school_rankings: list[RecruitingSchoolBoardRowRead] = Field(default_factory=list)
+    national_school_rankings: list[RecruitingSchoolBoardRowRead] = Field(default_factory=list)
 
 
 class RecruitingWatchlistCreate(BaseModel):

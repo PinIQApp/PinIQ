@@ -2,6 +2,8 @@ from datetime import datetime
 from types import SimpleNamespace
 
 from app.services.recruiting_service import _piniq_ranking
+from app.schemas.recruiting import RecruitingSchoolRankingRead
+from app.services.recruiting_service import _school_board_rows
 
 
 class _Query:
@@ -79,3 +81,56 @@ def test_piniq_ranking_stays_low_confidence_without_verified_sources():
     assert ranking.score < 40
     assert ranking.confidence == "low"
     assert ranking.state_rank_hint is None
+
+
+def test_school_board_rows_merge_verified_state_and_national_rankings():
+    cards = [
+        SimpleNamespace(
+            athlete_name="Jordan Blake",
+            school_rankings=[
+                RecruitingSchoolRankingRead(
+                    source="KentuckyMat",
+                    school_name="Martin County",
+                    state="KY",
+                    state_rank=5,
+                    national_rank=41,
+                    season="2026",
+                )
+            ],
+        ),
+        SimpleNamespace(
+            athlete_name="Sam Rivera",
+            school_rankings=[
+                RecruitingSchoolRankingRead(
+                    source="KentuckyMat",
+                    school_name="Martin County",
+                    state="KY",
+                    state_rank=4,
+                    national_rank=39,
+                    season="2026",
+                )
+            ],
+        ),
+        SimpleNamespace(
+            athlete_name="Ty Cole",
+            school_rankings=[
+                RecruitingSchoolRankingRead(
+                    source="TrackWrestling",
+                    school_name="Union County",
+                    state="KY",
+                    state_rank=2,
+                    season="2026",
+                )
+            ],
+        ),
+    ]
+
+    state_rows, national_rows = _school_board_rows(cards)
+
+    assert [row.school_name for row in state_rows[:2]] == ["Union County", "Martin County"]
+    martin = next(row for row in state_rows if row.school_name == "Martin County")
+    assert martin.state_rank == 4
+    assert martin.national_rank == 39
+    assert martin.athlete_count == 2
+    assert martin.athlete_names == ["Jordan Blake", "Sam Rivera"]
+    assert national_rows[0].school_name == "Martin County"

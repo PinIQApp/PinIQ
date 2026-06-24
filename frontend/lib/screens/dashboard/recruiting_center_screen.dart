@@ -202,6 +202,8 @@ class _RecruitingCenterScreenState extends State<RecruitingCenterScreen> {
             else ...[
               _RecruitingSummaryRow(athletes: _athletes),
               const SizedBox(height: AppSpacing.xl),
+              _SchoolRankingBoards(athletes: _athletes),
+              const SizedBox(height: AppSpacing.xl),
               if (isWide)
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -340,6 +342,232 @@ class _RecruitingSummaryRow extends StatelessWidget {
       ],
     );
   }
+}
+
+class _SchoolRankingBoardRow {
+  const _SchoolRankingBoardRow({
+    required this.schoolName,
+    required this.source,
+    required this.athleteNames,
+    this.state,
+    this.stateRank,
+    this.nationalRank,
+    this.division,
+    this.season,
+  });
+
+  final String schoolName;
+  final String source;
+  final String? state;
+  final int? stateRank;
+  final int? nationalRank;
+  final String? division;
+  final String? season;
+  final List<String> athleteNames;
+}
+
+class _SchoolRankingBoards extends StatelessWidget {
+  const _SchoolRankingBoards({required this.athletes});
+
+  final List<RecruitingAthleteModel> athletes;
+
+  @override
+  Widget build(BuildContext context) {
+    final stateRows = _buildSchoolRankingRows(athletes, national: false);
+    final nationalRows = _buildSchoolRankingRows(athletes, national: true);
+    if (stateRows.isEmpty && nationalRows.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SectionHeader(title: 'School rankings'),
+        const SizedBox(height: AppSpacing.md),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final isWide = constraints.maxWidth >= 900;
+            final boards = [
+              Expanded(
+                child: _SchoolRankingList(
+                  title: 'State board',
+                  rows: stateRows,
+                  national: false,
+                ),
+              ),
+              Expanded(
+                child: _SchoolRankingList(
+                  title: 'National board',
+                  rows: nationalRows,
+                  national: true,
+                ),
+              ),
+            ];
+            if (isWide) {
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  boards.first,
+                  const SizedBox(width: AppSpacing.md),
+                  boards.last,
+                ],
+              );
+            }
+            return Column(
+              children: [
+                _SchoolRankingList(
+                  title: 'State board',
+                  rows: stateRows,
+                  national: false,
+                ),
+                const SizedBox(height: AppSpacing.md),
+                _SchoolRankingList(
+                  title: 'National board',
+                  rows: nationalRows,
+                  national: true,
+                ),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _SchoolRankingList extends StatelessWidget {
+  const _SchoolRankingList({
+    required this.title,
+    required this.rows,
+    required this.national,
+  });
+
+  final String title;
+  final List<_SchoolRankingBoardRow> rows;
+  final bool national;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.82),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: AppTextStyles.bodyStrong),
+          const SizedBox(height: AppSpacing.md),
+          if (rows.isEmpty)
+            Text('No verified school rankings yet.', style: AppTextStyles.body)
+          else
+            for (final row in rows.take(6))
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: _SchoolRankingTile(row: row, national: national),
+              ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SchoolRankingTile extends StatelessWidget {
+  const _SchoolRankingTile({required this.row, required this.national});
+
+  final _SchoolRankingBoardRow row;
+  final bool national;
+
+  @override
+  Widget build(BuildContext context) {
+    final rank = national ? row.nationalRank : row.stateRank;
+    final subtitle = [
+      row.source,
+      if (row.state != null) row.state!,
+      if (row.division != null) row.division!,
+      if (row.season != null) row.season!,
+    ].join(' • ');
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 42,
+          height: 42,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: AppColors.success.withValues(alpha: 0.16),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Text('#${rank ?? '-'}', style: AppTextStyles.bodyStrong),
+        ),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(row.schoolName, style: AppTextStyles.bodyStrong),
+              const SizedBox(height: AppSpacing.xxs),
+              Text(subtitle, style: AppTextStyles.caption),
+              if (row.athleteNames.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.xxs),
+                Text(
+                  row.athleteNames.take(3).join(', '),
+                  style: AppTextStyles.caption
+                      .copyWith(color: AppColors.textPrimary),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+List<_SchoolRankingBoardRow> _buildSchoolRankingRows(
+  List<RecruitingAthleteModel> athletes, {
+  required bool national,
+}) {
+  final rows = <String, _SchoolRankingBoardRow>{};
+  for (final athlete in athletes) {
+    for (final ranking in athlete.schoolRankings) {
+      final rank = national ? ranking.nationalRank : ranking.stateRank;
+      if (rank == null) continue;
+      final key = [
+        ranking.source,
+        ranking.schoolName.toLowerCase().trim(),
+        ranking.state ?? '',
+        ranking.division ?? '',
+        ranking.season ?? '',
+      ].join('|');
+      final existing = rows[key];
+      if (existing == null) {
+        rows[key] = _SchoolRankingBoardRow(
+          schoolName: ranking.schoolName,
+          source: ranking.source,
+          state: ranking.state,
+          stateRank: ranking.stateRank,
+          nationalRank: ranking.nationalRank,
+          division: ranking.division,
+          season: ranking.season,
+          athleteNames: [athlete.athleteName],
+        );
+      } else if (!existing.athleteNames.contains(athlete.athleteName)) {
+        existing.athleteNames.add(athlete.athleteName);
+      }
+    }
+  }
+  final values = rows.values.toList()
+    ..sort((a, b) {
+      final left = national ? a.nationalRank ?? 9999 : a.stateRank ?? 9999;
+      final right = national ? b.nationalRank ?? 9999 : b.stateRank ?? 9999;
+      final rankCompare = left.compareTo(right);
+      if (rankCompare != 0) return rankCompare;
+      return a.schoolName.compareTo(b.schoolName);
+    });
+  return values;
 }
 
 class _RecruitingBoard extends StatelessWidget {

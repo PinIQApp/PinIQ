@@ -32,6 +32,7 @@ from app.schemas.recruiting import (
     RecruitingProfileUpdate,
     RecruitingProfileWriteResponse,
     RecruitingRecentMatchRead,
+    RecruitingSchoolBoardRowRead,
     RecruitingSchoolRankingRead,
     RecruitingSearchParams,
     RecruitingSearchResponse,
@@ -421,6 +422,66 @@ def _piniq_ranking(
         confidence=confidence,
         factors=factors,
     )
+
+
+def _school_board_rows(
+    cards: list[RecruitingAthleteCardRead],
+) -> tuple[list[RecruitingSchoolBoardRowRead], list[RecruitingSchoolBoardRowRead]]:
+    rows: dict[tuple[str, str, str | None, str | None, str | None], RecruitingSchoolBoardRowRead] = {}
+    for card in cards:
+        for ranking in card.school_rankings:
+            if ranking.state_rank is None and ranking.national_rank is None:
+                continue
+            key = (
+                ranking.source,
+                ranking.school_name.strip().lower(),
+                ranking.state,
+                ranking.division,
+                ranking.season,
+            )
+            existing = rows.get(key)
+            if existing is None:
+                existing = RecruitingSchoolBoardRowRead(
+                    school_name=ranking.school_name,
+                    source=ranking.source,
+                    state=ranking.state,
+                    state_rank=ranking.state_rank,
+                    national_rank=ranking.national_rank,
+                    division=ranking.division,
+                    season=ranking.season,
+                    profile_url=ranking.profile_url,
+                    last_checked=ranking.last_checked,
+                    athlete_names=[],
+                )
+                rows[key] = existing
+            else:
+                if ranking.state_rank is not None:
+                    existing.state_rank = (
+                        ranking.state_rank
+                        if existing.state_rank is None
+                        else min(existing.state_rank, ranking.state_rank)
+                    )
+                if ranking.national_rank is not None:
+                    existing.national_rank = (
+                        ranking.national_rank
+                        if existing.national_rank is None
+                        else min(existing.national_rank, ranking.national_rank)
+                    )
+                if ranking.profile_url and not existing.profile_url:
+                    existing.profile_url = ranking.profile_url
+                if ranking.last_checked and (
+                    existing.last_checked is None or ranking.last_checked > existing.last_checked
+                ):
+                    existing.last_checked = ranking.last_checked
+            if card.athlete_name not in existing.athlete_names:
+                existing.athlete_names.append(card.athlete_name)
+            existing.athlete_count = len(existing.athlete_names)
+
+    state_rows = [row for row in rows.values() if row.state_rank is not None]
+    state_rows.sort(key=lambda row: (row.state or "", row.state_rank or 9999, row.school_name))
+    national_rows = [row for row in rows.values() if row.national_rank is not None]
+    national_rows.sort(key=lambda row: (row.national_rank or 9999, row.school_name))
+    return state_rows[:50], national_rows[:50]
 
 
 def _merge_rankings(existing: list[dict], incoming: list[dict], *, key_fields: tuple[str, ...]) -> list[dict]:
@@ -844,11 +905,14 @@ def get_recruiting_board(db: Session, current_user: User) -> RecruitingBoardRead
     featured = [item for item in cards if item.is_featured][:8]
     recently_updated = sorted(cards, key=lambda item: item.updated_at, reverse=True)[:8]
     top_performers = sorted(cards, key=lambda item: ((item.win_percentage or 0), (item.bonus_point_rate or 0)), reverse=True)[:8]
+    state_school_rankings, national_school_rankings = _school_board_rows(cards)
     return RecruitingBoardRead(
         trending_athletes=trending,
         featured_athletes=featured,
         recently_updated=recently_updated,
         top_performers=top_performers,
+        state_school_rankings=state_school_rankings,
+        national_school_rankings=national_school_rankings,
     )
 
 
