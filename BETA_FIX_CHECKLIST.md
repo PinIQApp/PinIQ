@@ -85,9 +85,10 @@ Use this file as the working checklist so fixes happen in small, verifiable chun
 - [x] Add backend saved source-link workflow per athlete profile.
 - [x] Add scheduler-ready saved source scan service and command-line runner.
 - [x] Add frontend UI for coaches to paste/save ranking source URLs.
-- [x] Add scheduled auto-scan job for saved public source URLs.
-  - [x] Add Render cron blueprint entry for nightly saved recruiting scans.
-  - [ ] Confirm Render cron service is created/synced and has `DATABASE_URL` configured.
+- [ ] Add scheduled auto-scan job for saved public source URLs.
+  - [x] Remove paid Render cron from the blueprint.
+  - [ ] Add free GitHub Actions scheduled workflow for nightly saved recruiting scans.
+  - [ ] Add `RECRUITING_SCAN_DATABASE_URL` repository secret for the scheduled workflow.
 - [ ] Add source-specific parser hardening for KentuckyMat ranking/results pages.
 - [ ] Add source-specific parser hardening for TrackWrestling public rankings pages.
 - [ ] Add Pin IQ-owned ranking formula from verified tournament results, record, opponent quality, placement, activity, recency, weight class, and school strength.

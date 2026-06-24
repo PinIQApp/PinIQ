@@ -161,15 +161,15 @@ Example alert payload:
 
 - Run `python scripts/cleanup_auth_tokens.py` on a schedule to purge expired or spent auth tokens.
 
-## Scheduled Recruiting Source Scan
+## Free Scheduled Recruiting Source Scan
 
-The Render blueprint includes `wrestletech-recruiting-source-scan`, a cron service that runs:
+The saved recruiting source scanner can run for free from GitHub Actions once the repository has a workflow file and the `RECRUITING_SCAN_DATABASE_URL` secret. The job should run:
 
 ```bash
 python scripts/run_recruiting_source_scan.py --limit 500 --show-failures
 ```
 
-It scans saved public recruiting source links, updates verified wrestler and school ranking fields, and prints summary/failure lines to the cron logs. Configure the cron service with the same production `DATABASE_URL` secret as the API service before enabling it.
+It scans saved public recruiting source links, updates verified wrestler and school ranking fields, and prints summary/failure lines to the workflow logs. Configure `RECRUITING_SCAN_DATABASE_URL` with the same Neon database URL used by the API. Creating or editing `.github/workflows/*` requires a GitHub token with `workflow` scope.
 - Auth rate limiting now uses the shared application database instead of per-process memory. Redis remains an optional future optimization if traffic volume outgrows the database-backed approach.
 
 ## Staging workflow
