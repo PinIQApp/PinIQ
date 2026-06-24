@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -16,6 +16,9 @@ from app.schemas.recruiting import (
     RecruitingProfileWriteResponse,
     RecruitingSearchParams,
     RecruitingSearchResponse,
+    RecruitingSavedSourceScanResponse,
+    RecruitingSourceLinksRead,
+    RecruitingSourceLinksUpsert,
     RecruitingSourceScanRequest,
     RecruitingSourceScanResponse,
     RecruitingTrendingRead,
@@ -27,10 +30,13 @@ from app.services.recruiting_service import (
     create_recruiting_profile,
     get_recruiting_board,
     get_recruiting_profile,
+    get_recruiting_source_links,
     get_trending_athletes,
     get_watchlist,
     list_recruiting_athletes,
+    run_saved_recruiting_source_scans,
     save_recruiting_note,
+    save_recruiting_source_links,
     save_watchlist_entry,
     scan_recruiting_sources,
     search_recruiting_athletes,
@@ -67,6 +73,27 @@ def get_recruiting_athlete_profile(
     current_user=Depends(get_current_user),
 ):
     return get_recruiting_profile(db, athlete_id=athlete_id, current_user=current_user)
+
+
+@router.get("/recruiting/athlete/{athlete_id}/source-links", response_model=RecruitingSourceLinksRead)
+def get_recruiting_source_links_route(
+    athlete_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    return get_recruiting_source_links(db, athlete_id=athlete_id, current_user=current_user)
+
+
+@router.put("/recruiting/athlete/{athlete_id}/source-links", response_model=RecruitingSourceLinksRead)
+def put_recruiting_source_links_route(
+    athlete_id: int,
+    payload: RecruitingSourceLinksUpsert,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    result = save_recruiting_source_links(db, athlete_id=athlete_id, payload=payload, current_user=current_user)
+    db.commit()
+    return result
 
 
 @router.post("/recruiting/profile", response_model=RecruitingProfileWriteResponse, status_code=status.HTTP_201_CREATED)
@@ -137,6 +164,20 @@ def post_recruiting_source_scan_route(
     result = scan_recruiting_sources(db, payload=payload, current_user=current_user)
     if payload.update_profile:
         db.commit()
+    return result
+
+
+@router.post("/recruiting/source-scan/saved", response_model=RecruitingSavedSourceScanResponse)
+def post_saved_recruiting_source_scan_route(
+    limit: int = Query(default=100, ge=1, le=500),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    if getattr(current_user.role, "value", current_user.role) != "admin":
+        # Coaches can scan individual source links, but global scheduled scans are admin/system work.
+        raise HTTPException(status_code=403, detail="Only admins can run saved recruiting source scans")
+    result = run_saved_recruiting_source_scans(db, limit=limit)
+    db.commit()
     return result
 
 

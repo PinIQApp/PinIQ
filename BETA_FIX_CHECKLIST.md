@@ -82,6 +82,8 @@ Use this file as the working checklist so fixes happen in small, verifiable chun
 - [x] Add public source scanner foundation for TrackWrestling, FloWrestling, USA Bracketing, and KentuckyMat links.
 - [x] Add KentuckyMat as an approved public Kentucky wrestling data source.
 - [x] Add API endpoint to scan public recruiting/ranking source URLs and optionally update the athlete profile.
+- [x] Add backend saved source-link workflow per athlete profile.
+- [x] Add scheduler-ready saved source scan service and command-line runner.
 - [ ] Add frontend UI for coaches to paste/save ranking source URLs.
 - [ ] Add scheduled auto-scan job for saved public source URLs.
 - [ ] Add source-specific parser hardening for KentuckyMat ranking/results pages.

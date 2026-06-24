@@ -215,6 +215,15 @@ class RecruitingSourceLink(BaseModel):
     url: str = Field(min_length=8, max_length=1000)
 
 
+class RecruitingSourceLinksUpsert(BaseModel):
+    source_links: list[RecruitingSourceLink] = Field(default_factory=list, max_length=12)
+
+
+class RecruitingSourceLinksRead(BaseModel):
+    athlete_id: int
+    source_links: list[RecruitingSourceLink] = Field(default_factory=list)
+
+
 class RecruitingSourceScanRequest(BaseModel):
     athlete_id: int | None = None
     athlete_name: str | None = Field(default=None, max_length=160)
@@ -239,6 +248,15 @@ class RecruitingSourceScanResponse(BaseModel):
     source_rankings: list[RecruitingSourceRankingRead] = Field(default_factory=list)
     school_rankings: list[RecruitingSchoolRankingRead] = Field(default_factory=list)
     results: list[RecruitingSourceScanResultRead] = Field(default_factory=list)
+
+
+class RecruitingSavedSourceScanResponse(BaseModel):
+    scanned_at: datetime
+    profiles_checked: int = 0
+    profiles_updated: int = 0
+    source_rankings_found: int = 0
+    school_rankings_found: int = 0
+    failures: list[str] = Field(default_factory=list)
 
 
 class RecruitingBoardRead(BaseModel):

@@ -34,6 +34,10 @@ from app.schemas.recruiting import (
     RecruitingSchoolRankingRead,
     RecruitingSearchParams,
     RecruitingSearchResponse,
+    RecruitingSavedSourceScanResponse,
+    RecruitingSourceLink,
+    RecruitingSourceLinksRead,
+    RecruitingSourceLinksUpsert,
     RecruitingSourceRankingRead,
     RecruitingSourceScanRequest,
     RecruitingSourceScanResponse,
@@ -349,6 +353,23 @@ def _merge_rankings(existing: list[dict], incoming: list[dict], *, key_fields: t
     return list(merged.values())
 
 
+def _source_links(profile: RecruitingProfile) -> list[RecruitingSourceLink]:
+    summary = profile.stats_summary or {}
+    rows = summary.get("source_links") or []
+    links: list[RecruitingSourceLink] = []
+    if not isinstance(rows, list):
+        return links
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        source = str(row.get("source") or "").strip()
+        url = str(row.get("url") or "").strip()
+        if not source or not url:
+            continue
+        links.append(RecruitingSourceLink(source=source, url=url))
+    return links
+
+
 def _mask_value(value: str | None) -> str | None:
     if not value:
         return None
@@ -630,6 +651,35 @@ def search_recruiting_athletes(
 def get_recruiting_profile(db: Session, athlete_id: int, current_user: User) -> RecruitingProfileRead:
     profile = _get_profile_or_404(db, athlete_id)
     return _profile_read(db, profile, current_user)
+
+
+def get_recruiting_source_links(db: Session, athlete_id: int, current_user: User) -> RecruitingSourceLinksRead:
+    profile = _get_profile_or_404(db, athlete_id)
+    _assert_profile_visible(db, profile, current_user)
+    return RecruitingSourceLinksRead(athlete_id=athlete_id, source_links=_source_links(profile))
+
+
+def save_recruiting_source_links(
+    db: Session,
+    athlete_id: int,
+    payload: RecruitingSourceLinksUpsert,
+    current_user: User,
+) -> RecruitingSourceLinksRead:
+    _assert_profile_editor(db, athlete_id, current_user)
+    profile = _get_profile_or_404(db, athlete_id)
+    summary = dict(profile.stats_summary or {})
+    seen: set[tuple[str, str]] = set()
+    rows: list[dict] = []
+    for source_link in payload.source_links:
+        key = (source_link.source.strip().lower(), source_link.url.strip())
+        if key in seen:
+            continue
+        seen.add(key)
+        rows.append(source_link.model_dump())
+    summary["source_links"] = rows
+    profile.stats_summary = summary
+    db.flush()
+    return RecruitingSourceLinksRead(athlete_id=athlete_id, source_links=_source_links(profile))
 
 
 def create_recruiting_profile(
@@ -926,4 +976,74 @@ def scan_recruiting_sources(
         source_rankings=all_source_rankings,
         school_rankings=all_school_rankings,
         results=result_reads,
+    )
+
+
+def run_saved_recruiting_source_scans(db: Session, *, limit: int = 100) -> RecruitingSavedSourceScanResponse:
+    profiles = (
+        db.query(RecruitingProfile)
+        .options(joinedload(RecruitingProfile.athlete))
+        .filter(RecruitingProfile.stats_summary.isnot(None))
+        .order_by(RecruitingProfile.updated_at.asc(), RecruitingProfile.id.asc())
+        .limit(limit)
+        .all()
+    )
+    checked = 0
+    updated = 0
+    source_found = 0
+    school_found = 0
+    failures: list[str] = []
+
+    for profile in profiles:
+        links = _source_links(profile)
+        if not links:
+            continue
+        checked += 1
+        summary = dict(profile.stats_summary or {})
+        incoming_source_rows: list[dict] = []
+        incoming_school_rows: list[dict] = []
+
+        for source_link in links:
+            try:
+                result = scan_public_recruiting_source(
+                    source=source_link.source,
+                    url=source_link.url,
+                    athlete_name=profile.athlete.full_name,
+                    school_name=profile.school_team,
+                    state=profile.location_label,
+                )
+            except RecruitingSourceScannerError as exc:
+                failures.append(f"{profile.athlete_id}:{source_link.source}: {exc}")
+                continue
+            incoming_source_rows.extend(
+                item.model_dump(mode="json", exclude_none=True) for item in result.source_rankings
+            )
+            incoming_school_rows.extend(
+                item.model_dump(mode="json", exclude_none=True) for item in result.school_rankings
+            )
+
+        if incoming_source_rows or incoming_school_rows:
+            summary["source_rankings"] = _merge_rankings(
+                summary.get("source_rankings") or [],
+                incoming_source_rows,
+                key_fields=("source", "profile_url", "weight_class"),
+            )
+            summary["school_rankings"] = _merge_rankings(
+                summary.get("school_rankings") or [],
+                incoming_school_rows,
+                key_fields=("source", "profile_url", "school_name"),
+            )
+            profile.stats_summary = summary
+            updated += 1
+            source_found += len(incoming_source_rows)
+            school_found += len(incoming_school_rows)
+
+    db.flush()
+    return RecruitingSavedSourceScanResponse(
+        scanned_at=datetime.utcnow(),
+        profiles_checked=checked,
+        profiles_updated=updated,
+        source_rankings_found=source_found,
+        school_rankings_found=school_found,
+        failures=failures[:50],
     )

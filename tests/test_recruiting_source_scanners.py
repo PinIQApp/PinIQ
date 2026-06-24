@@ -1,8 +1,13 @@
 from types import SimpleNamespace
 
-from app.schemas.recruiting import RecruitingSourceScanRequest, RecruitingSourceLink
+from app.schemas.recruiting import RecruitingSourceLinksUpsert, RecruitingSourceScanRequest, RecruitingSourceLink
 from app.services import recruiting_source_scanners
-from app.services.recruiting_service import _source_rankings, scan_recruiting_sources
+from app.services.recruiting_service import (
+    _source_rankings,
+    run_saved_recruiting_source_scans,
+    save_recruiting_source_links,
+    scan_recruiting_sources,
+)
 
 
 def test_public_recruiting_scan_extracts_kentuckymat_athlete_and_school_rows(monkeypatch):
@@ -136,3 +141,81 @@ def test_scan_recruiting_sources_can_update_existing_profile(client, db_session,
     assert result.updated_profile is True
     assert profile.stats_summary["source_rankings"][0]["record"] == "36-4"
     assert profile.stats_summary["school_rankings"][0]["state_rank"] == 5
+
+
+def test_saved_recruiting_source_scan_updates_profiles_with_saved_links(client, db_session, coach_auth_headers, monkeypatch):
+    from app.core.security import get_password_hash
+    from app.models.recruiting import RecruitingProfile, RecruitingVisibility
+    from app.models.user import User, UserRole
+
+    athlete = User(
+        email="saved-athlete@example.com",
+        password_hash=get_password_hash("Password123"),
+        full_name="Jordan Blake",
+        role=UserRole.athlete,
+    )
+    db_session.add(athlete)
+    db_session.flush()
+    profile = RecruitingProfile(
+        athlete_id=athlete.id,
+        graduation_year=2027,
+        school_team="Martin County",
+        weight_class="132",
+        location_label="KY",
+        stats_summary={},
+    )
+    db_session.add(profile)
+    db_session.flush()
+    db_session.add(RecruitingVisibility(profile_id=profile.id))
+    db_session.commit()
+
+    coach = db_session.query(User).filter(User.email == "coach@example.com").one()
+    save_recruiting_source_links(
+        db_session,
+        athlete_id=athlete.id,
+        payload=RecruitingSourceLinksUpsert(
+            source_links=[
+                RecruitingSourceLink(source="KentuckyMat", url="https://kentuckymat.com/rankings"),
+            ]
+        ),
+        current_user=athlete,
+    )
+    db_session.commit()
+
+    monkeypatch.setattr(
+        "app.services.recruiting_service.scan_public_recruiting_source",
+        lambda **kwargs: recruiting_source_scanners.RecruitingSourceScanResult(
+            source="KentuckyMat",
+            url=kwargs["url"],
+            source_rankings=[
+                recruiting_source_scanners.RecruitingSourceRankingRead(
+                    source="KentuckyMat",
+                    record="36-4",
+                    ranking="#2",
+                    weight_class="132",
+                    profile_url=kwargs["url"],
+                )
+            ],
+            school_rankings=[
+                recruiting_source_scanners.RecruitingSchoolRankingRead(
+                    source="KentuckyMat",
+                    school_name="Martin County",
+                    state="KY",
+                    state_rank=5,
+                    national_rank=41,
+                    profile_url=kwargs["url"],
+                )
+            ],
+        ),
+    )
+
+    result = run_saved_recruiting_source_scans(db_session, limit=10)
+
+    db_session.refresh(profile)
+    assert coach.role == UserRole.coach
+    assert result.profiles_checked == 1
+    assert result.profiles_updated == 1
+    assert result.source_rankings_found == 1
+    assert result.school_rankings_found == 1
+    assert profile.stats_summary["source_rankings"][0]["ranking"] == "#2"
+    assert profile.stats_summary["source_links"][0]["source"] == "KentuckyMat"
