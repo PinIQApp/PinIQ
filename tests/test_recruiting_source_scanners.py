@@ -92,6 +92,40 @@ def test_recruiting_scan_does_not_invent_rankings_when_name_missing(monkeypatch)
     assert result.school_rankings == []
 
 
+def test_trackwrestling_table_parser_extracts_public_member_ranking(monkeypatch):
+    html = """
+    <html>
+      <body>
+        <table>
+          <tr><th>Rank</th><th>Weight</th><th>Name</th><th>Team</th><th>Record</th></tr>
+          <tr><td>7</td><td>132</td><td>Jordan Blake</td><td>Martin County</td><td>31-6</td></tr>
+        </table>
+        <table>
+          <tr><th>Rank</th><th>School</th><th>State</th></tr>
+          <tr><td>4</td><td>Martin County</td><td>KY</td></tr>
+        </table>
+      </body>
+    </html>
+    """
+    monkeypatch.setattr(recruiting_source_scanners, "_fetch_html", lambda url: html)
+
+    result = recruiting_source_scanners.scan_public_recruiting_source(
+        source="TrackWrestling",
+        url="https://www.trackwrestling.com/membership/MemberRankings.jsp",
+        athlete_name="Jordan Blake",
+        school_name="Martin County",
+        state="KY",
+    )
+
+    assert result.source == "TrackWrestling"
+    assert len(result.source_rankings) == 1
+    assert result.source_rankings[0].ranking == "#7"
+    assert result.source_rankings[0].weight_class == "132"
+    assert result.source_rankings[0].record == "31-6"
+    assert len(result.school_rankings) == 1
+    assert result.school_rankings[0].state_rank == 4
+
+
 def test_source_rankings_normalize_real_supported_sources():
     profile = SimpleNamespace(
         school_team="Martin County",

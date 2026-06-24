@@ -178,6 +178,11 @@ def _is_kentuckymat_url(url: str) -> bool:
     return host == "kentuckymat.com" or host.endswith(".kentuckymat.com")
 
 
+def _is_trackwrestling_url(url: str) -> bool:
+    host = (urlparse(url).hostname or "").lower()
+    return host == "trackwrestling.com" or host.endswith(".trackwrestling.com")
+
+
 def _rank_from_cells(cells: list[str]) -> int | None:
     if len(cells) == 1:
         return _rank_from_line(cells[0])
@@ -263,6 +268,65 @@ def _parse_kentuckymat_rankings(
     return source_rankings, school_rankings
 
 
+def _parse_trackwrestling_rankings(
+    *,
+    html: str,
+    url: str,
+    athlete_name: str | None,
+    school_name: str | None,
+    state: str | None,
+) -> tuple[list[RecruitingSourceRankingRead], list[RecruitingSchoolRankingRead]]:
+    source_rankings: list[RecruitingSourceRankingRead] = []
+    school_rankings: list[RecruitingSchoolRankingRead] = []
+
+    for cells in _table_rows(html):
+        joined = " ".join(cells)
+        lowered = joined.lower()
+        if any(header in lowered for header in {"rank name school", "rank wrestler team", "weight name team"}):
+            continue
+
+        if _contains_all_name_tokens(joined, athlete_name):
+            rank = _rank_from_cells(cells)
+            source_rankings.append(
+                RecruitingSourceRankingRead(
+                    source="TrackWrestling",
+                    record=_record_from_cells(cells),
+                    ranking=f"#{rank}" if rank else _ranking_label(joined),
+                    weight_class=_weight_from_cells(cells),
+                    season=_season_from_line(joined),
+                    profile_url=url,
+                    last_checked=date.today(),
+                )
+            )
+            continue
+
+        if not school_name or school_name.lower() not in lowered:
+            continue
+
+        rank = _rank_from_cells(cells)
+        national_rank = _rank_from_line(joined, national=True)
+        state_rank = _rank_from_line(joined, state=True)
+        if state_rank is None and rank != national_rank:
+            state_rank = rank
+        if national_rank is None and "national" in lowered:
+            national_rank = rank
+
+        school_rankings.append(
+            RecruitingSchoolRankingRead(
+                source="TrackWrestling",
+                school_name=school_name,
+                state=_state_from_line(joined, state),
+                state_rank=state_rank,
+                national_rank=national_rank,
+                season=_season_from_line(joined),
+                profile_url=url,
+                last_checked=date.today(),
+            )
+        )
+
+    return source_rankings, school_rankings
+
+
 def scan_public_recruiting_source(
     *,
     source: str,
@@ -293,6 +357,23 @@ def scan_public_recruiting_source(
                 source_rankings=source_rankings,
                 school_rankings=school_rankings,
                 message=f"Scanned {len(_table_rows(html))} KentuckyMat table rows from public source.",
+            )
+
+    if source_label == "TrackWrestling" or _is_trackwrestling_url(url):
+        source_rankings, school_rankings = _parse_trackwrestling_rankings(
+            html=html,
+            url=url,
+            athlete_name=athlete_name,
+            school_name=school_name,
+            state=state,
+        )
+        if source_rankings or school_rankings:
+            return RecruitingSourceScanResult(
+                source="TrackWrestling",
+                url=url,
+                source_rankings=source_rankings,
+                school_rankings=school_rankings,
+                message=f"Scanned {len(_table_rows(html))} TrackWrestling table rows from public source.",
             )
 
     for line in lines:
