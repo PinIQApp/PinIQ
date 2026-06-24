@@ -2759,27 +2759,40 @@ class _GroceryCard extends StatelessWidget {
           ...plan.groceryList.map(
             (item) => Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                      child: Text(item.item, style: AppTextStyles.bodyStrong)),
-                  const SizedBox(width: AppSpacing.md),
-                  Text(item.quantity, style: AppTextStyles.body),
-                  const SizedBox(width: AppSpacing.md),
+                  Row(
+                    children: [
+                      Expanded(
+                          child:
+                              Text(item.item, style: AppTextStyles.bodyStrong)),
+                      const SizedBox(width: AppSpacing.md),
+                      Text(
+                        '~\$${_estimateGroceryItemCost(item).toStringAsFixed(2)}',
+                        style: AppTextStyles.caption
+                            .copyWith(color: AppColors.textSecondary),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.xxs),
                   Text(
-                    '~${_estimateGroceryItemCost(item).toStringAsFixed(2)}',
+                    [
+                      item.quantity,
+                      if (item.servingSizeNote?.isNotEmpty == true)
+                        item.servingSizeNote!,
+                      item.category,
+                    ].join(' • '),
                     style: AppTextStyles.caption
                         .copyWith(color: AppColors.textSecondary),
                   ),
-                  const SizedBox(width: AppSpacing.md),
-                  Text(item.category, style: AppTextStyles.caption),
                 ],
               ),
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
-            'Walmart-style cost estimates are approximate and meant for planning, not live checkout pricing.',
+            'Walmart planning estimates are approximate and meant for parent shopping prep, not live checkout pricing.',
             style:
                 AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
           ),
@@ -2821,7 +2834,18 @@ class _GroceryCard extends StatelessWidget {
 String _walmartGroceryText(NutritionPlanResponseModel plan) {
   return [
     'Pin IQ grocery list',
-    ...plan.groceryList.map((item) => '- ${item.item}: ${item.quantity}'),
+    ...plan.groceryList.map(
+      (item) {
+        final estimate = item.estimatedTotalPrice == null
+            ? ''
+            : ' (~\$${item.estimatedTotalPrice!.toStringAsFixed(2)})';
+        final serving = item.servingSizeNote?.isEmpty ?? true
+            ? ''
+            : ' - ${item.servingSizeNote}';
+        return '- ${item.item}: ${item.quantity}$estimate$serving';
+      },
+    ),
+    'Prices are Walmart planning estimates, not live checkout prices.',
   ].join('\n');
 }
 
@@ -2857,6 +2881,7 @@ double _estimateMealCost(NutritionMeal meal) {
 }
 
 double _estimateGroceryItemCost(GroceryItemModel item) {
+  if (item.estimatedTotalPrice != null) return item.estimatedTotalPrice!;
   final base = _estimateFoodUnitCost(item.item);
   final multiplier = _servingCount(item.quantity).toDouble();
   return (base * multiplier).clamp(0, 80);

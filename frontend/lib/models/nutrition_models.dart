@@ -49,7 +49,9 @@ class NutritionMeal {
   factory NutritionMeal.fromJson(Map<String, dynamic> json) {
     return NutritionMeal(
       name: json['name'] ?? '',
-      foods: (json['foods'] as List<dynamic>? ?? []).map((item) => item.toString()).toList(),
+      foods: (json['foods'] as List<dynamic>? ?? [])
+          .map((item) => item.toString())
+          .toList(),
       approxCalories: json['approx_calories'] ?? 0,
       proteinG: json['protein_g'] ?? 0,
       carbsG: json['carbs_g'] ?? 0,
@@ -72,7 +74,8 @@ class NutritionDayPlan {
     return NutritionDayPlan(
       dayLabel: json['day_label'] ?? '',
       meals: (json['meals'] as List<dynamic>? ?? [])
-          .map((item) => NutritionMeal.fromJson(Map<String, dynamic>.from(item)))
+          .map(
+              (item) => NutritionMeal.fromJson(Map<String, dynamic>.from(item)))
           .toList(),
     );
   }
@@ -83,17 +86,35 @@ class GroceryItemModel {
     required this.item,
     required this.quantity,
     required this.category,
+    this.estimatedUnitPrice,
+    this.estimatedTotalPrice,
+    this.priceSource,
+    this.servingSizeNote,
+    this.shoppingQuery,
+    this.shoppingUrl,
   });
 
   final String item;
   final String quantity;
   final String category;
+  final double? estimatedUnitPrice;
+  final double? estimatedTotalPrice;
+  final String? priceSource;
+  final String? servingSizeNote;
+  final String? shoppingQuery;
+  final String? shoppingUrl;
 
   factory GroceryItemModel.fromJson(Map<String, dynamic> json) {
     return GroceryItemModel(
       item: json['item'] ?? '',
       quantity: json['quantity'] ?? '',
       category: json['category'] ?? '',
+      estimatedUnitPrice: (json['estimated_unit_price'] as num?)?.toDouble(),
+      estimatedTotalPrice: (json['estimated_total_price'] as num?)?.toDouble(),
+      priceSource: json['price_source'],
+      servingSizeNote: json['serving_size_note'],
+      shoppingQuery: json['shopping_query'],
+      shoppingUrl: json['shopping_url'],
     );
   }
 }
@@ -142,17 +163,22 @@ class NutritionPlanResponseModel {
   factory NutritionPlanResponseModel.fromJson(Map<String, dynamic> json) {
     return NutritionPlanResponseModel(
       athleteSummary: Map<String, dynamic>.from(json['athlete_summary'] ?? {}),
-      macros: NutritionMacros.fromJson(Map<String, dynamic>.from(json['macros'] ?? {})),
+      macros: NutritionMacros.fromJson(
+          Map<String, dynamic>.from(json['macros'] ?? {})),
       weeklyPlan: (json['weekly_plan'] as List<dynamic>? ?? [])
-          .map((item) => NutritionDayPlan.fromJson(Map<String, dynamic>.from(item)))
+          .map((item) =>
+              NutritionDayPlan.fromJson(Map<String, dynamic>.from(item)))
           .toList(),
       groceryList: (json['grocery_list'] as List<dynamic>? ?? [])
-          .map((item) => GroceryItemModel.fromJson(Map<String, dynamic>.from(item)))
+          .map((item) =>
+              GroceryItemModel.fromJson(Map<String, dynamic>.from(item)))
           .toList(),
       hydrationPlan: Map<String, dynamic>.from(json['hydration_plan'] ?? {}),
-      weighInStrategy: Map<String, dynamic>.from(json['weigh_in_strategy'] ?? {}),
+      weighInStrategy:
+          Map<String, dynamic>.from(json['weigh_in_strategy'] ?? {}),
       warnings: (json['warnings'] as List<dynamic>? ?? [])
-          .map((item) => NutritionWarningModel.fromJson(Map<String, dynamic>.from(item)))
+          .map((item) =>
+              NutritionWarningModel.fromJson(Map<String, dynamic>.from(item)))
           .toList(),
       providerStatus: json['provider_status'] == null
           ? null
@@ -205,7 +231,8 @@ List<NutritionAthleteProfileModel> seedNutritionAthleteProfiles() {
       bodyFat: '14.2%',
       hydration: 'Behind',
       decision: 'Coach review',
-      focus: 'Tighten hydration and post-practice recovery before weekend travel.',
+      focus:
+          'Tighten hydration and post-practice recovery before weekend travel.',
     ),
     NutritionAthleteProfileModel(
       athlete: 'Maya Slone',
@@ -221,7 +248,8 @@ List<NutritionAthleteProfileModel> seedNutritionAthleteProfiles() {
       bodyFat: '12.8%',
       hydration: 'At risk',
       decision: 'Blocked',
-      focus: 'Unsafe cut pattern needs staff intervention before the plan continues.',
+      focus:
+          'Unsafe cut pattern needs staff intervention before the plan continues.',
     ),
   ];
 }

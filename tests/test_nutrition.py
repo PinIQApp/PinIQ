@@ -132,6 +132,11 @@ def test_create_plan_family_budget_and_exclusions():
     assert plan.provider_status["provider"] == "mock"
     assert plan.provider_status["requested"] is True
     assert all("rice" not in food.lower() for day in plan.weekly_plan for meal in day.meals for food in meal.foods)
+    assert plan.grocery_list
+    assert all(item.estimated_total_price is not None for item in plan.grocery_list)
+    assert all(item.price_source == "Walmart planning estimate" for item in plan.grocery_list)
+    assert all(item.serving_size_note for item in plan.grocery_list)
+    assert all(item.shopping_url and "walmart.com/search" in item.shopping_url for item in plan.grocery_list)
 
 
 def test_check_in_response_adjusts_for_low_energy_and_soreness():

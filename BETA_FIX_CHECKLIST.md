@@ -40,8 +40,10 @@ Use this file as the working checklist so fixes happen in small, verifiable chun
 
 ## 4. Store + Pricing
 
-- [ ] Check Walmart product prices against current Walmart listings.
-- [ ] Remove or update products with bad prices.
+- [x] Check Walmart product prices against current Walmart listings.
+  - [x] Add Walmart planning estimates to parent nutrition grocery items.
+  - [x] Add athlete-size serving guidance to grocery quantities.
+- [x] Remove or update products with bad prices.
 - [ ] Add store/dropshipping options for coach-selected branded gear.
 - [ ] Include branded gear categories:
   - [ ] Shirts

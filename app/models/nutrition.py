@@ -118,6 +118,12 @@ class GroceryItem(BaseModel):
     item: str
     quantity: str
     category: str
+    estimated_unit_price: float | None = None
+    estimated_total_price: float | None = None
+    price_source: str | None = None
+    serving_size_note: str | None = None
+    shopping_query: str | None = None
+    shopping_url: str | None = None
 
 
 class NutritionWarning(BaseModel):

@@ -24,7 +24,7 @@ class NutritionService:
     def create_plan(self, payload: NutritionPlanRequest) -> NutritionPlanResponse:
         macros = estimate_daily_macros(payload)
         weekly_plan = build_weekly_plan(payload, macros)
-        grocery_list = build_grocery_list(weekly_plan)
+        grocery_list = build_grocery_list(weekly_plan, payload=payload, macros=macros)
         hydration_plan = build_hydration_plan(payload, macros.water_oz)
         weigh_in_strategy = build_weigh_in_strategy(payload)
         warnings = build_plan_warnings(payload)
