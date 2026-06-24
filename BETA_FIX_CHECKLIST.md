@@ -91,7 +91,7 @@ Use this file as the working checklist so fixes happen in small, verifiable chun
   - [ ] Add `RECRUITING_SCAN_DATABASE_URL` repository secret for the scheduled workflow.
 - [x] Add source-specific parser hardening for KentuckyMat ranking/results pages.
 - [x] Add source-specific parser hardening for TrackWrestling public rankings pages.
-- [ ] Add Pin IQ-owned ranking formula from verified tournament results, record, opponent quality, placement, activity, recency, weight class, and school strength.
+- [x] Add Pin IQ-owned ranking formula from verified tournament results, record, opponent quality, placement, activity, recency, weight class, and school strength.
 - [ ] Add state-by-state school ranking board.
 - [ ] Add national school ranking board.
 - [ ] Add audit trail showing source URL, last scan date, and changed fields.

@@ -26,6 +26,7 @@ from app.schemas.recruiting import (
     RecruitingHighlightRead,
     RecruitingNoteCreate,
     RecruitingNoteRead,
+    RecruitingPinIqRankingRead,
     RecruitingProfileCreate,
     RecruitingProfileRead,
     RecruitingProfileUpdate,
@@ -336,6 +337,92 @@ def _school_rankings(profile: RecruitingProfile) -> list[RecruitingSchoolRanking
     return rankings
 
 
+def _source_rank_score(rankings: list[RecruitingSourceRankingRead]) -> tuple[float, int | None, int | None]:
+    best_state_rank: int | None = None
+    best_national_rank: int | None = None
+    score = 0.0
+    for ranking in rankings:
+        if ranking.ranking:
+            digits = "".join(char for char in ranking.ranking if char.isdigit())
+            if digits:
+                rank = int(digits)
+                best_state_rank = rank if best_state_rank is None else min(best_state_rank, rank)
+                score = max(score, max(0.0, 18.0 - min(rank, 50) * 0.25))
+        if ranking.record:
+            parts = [int(part) for part in ranking.record.replace(" ", "").split("-") if part.isdigit()]
+            if len(parts) >= 2:
+                wins, losses = parts[0], parts[1]
+                total = wins + losses
+                if total:
+                    score = max(score, min(12.0, (wins / total) * 12.0))
+    return score, best_state_rank, best_national_rank
+
+
+def _school_strength_score(rankings: list[RecruitingSchoolRankingRead]) -> tuple[float, int | None, int | None]:
+    score = 0.0
+    best_state_rank: int | None = None
+    best_national_rank: int | None = None
+    for ranking in rankings:
+        if ranking.state_rank:
+            best_state_rank = ranking.state_rank if best_state_rank is None else min(best_state_rank, ranking.state_rank)
+            score = max(score, max(0.0, 8.0 - min(ranking.state_rank, 50) * 0.12))
+        if ranking.national_rank:
+            best_national_rank = ranking.national_rank if best_national_rank is None else min(best_national_rank, ranking.national_rank)
+            score = max(score, max(0.0, 10.0 - min(ranking.national_rank, 150) * 0.04))
+    return score, best_state_rank, best_national_rank
+
+
+def _piniq_ranking(
+    db: Session,
+    profile: RecruitingProfile,
+    snapshot: AthleteStatSnapshot | None,
+) -> RecruitingPinIqRankingRead:
+    source_rankings = _source_rankings(profile)
+    school_rankings = _school_rankings(profile)
+    source_score, source_state_rank, source_national_rank = _source_rank_score(source_rankings)
+    school_score, school_state_rank, school_national_rank = _school_strength_score(school_rankings)
+    activity_score = _recent_activity_score(db, profile.athlete_id)
+    win_score = (snapshot.win_percentage * 35.0) if snapshot else 0.0
+    bonus_score = (snapshot.bonus_point_rate * 15.0) if snapshot else 0.0
+    volume_score = min((snapshot.total_matches if snapshot else 0) * 0.55, 10.0)
+    profile_score = min(len(profile.highlights) * 2.0, 6.0) + (4.0 if profile.achievements else 0.0)
+    score = round(min(100.0, win_score + bonus_score + volume_score + activity_score + source_score + school_score + profile_score), 2)
+
+    if score >= 85:
+        tier = "Elite"
+    elif score >= 70:
+        tier = "High Watch"
+    elif score >= 55:
+        tier = "Watch"
+    else:
+        tier = "Developing"
+
+    evidence_count = sum(
+        [
+            1 if snapshot and snapshot.total_matches else 0,
+            1 if source_rankings else 0,
+            1 if school_rankings else 0,
+            1 if profile.highlights else 0,
+        ]
+    )
+    confidence = "high" if evidence_count >= 3 else "medium" if evidence_count == 2 else "low"
+    factors = [
+        RecruitingStatsMetricRead(label="Win profile", value=f"{win_score:.1f}", numeric_value=round(win_score, 2)),
+        RecruitingStatsMetricRead(label="Bonus wins", value=f"{bonus_score:.1f}", numeric_value=round(bonus_score, 2)),
+        RecruitingStatsMetricRead(label="Activity", value=f"{activity_score:.1f}", numeric_value=round(activity_score, 2)),
+        RecruitingStatsMetricRead(label="Source rank", value=f"{source_score:.1f}", numeric_value=round(source_score, 2)),
+        RecruitingStatsMetricRead(label="School strength", value=f"{school_score:.1f}", numeric_value=round(school_score, 2)),
+    ]
+    return RecruitingPinIqRankingRead(
+        score=score,
+        tier=tier,
+        state_rank_hint=source_state_rank or school_state_rank,
+        national_rank_hint=source_national_rank or school_national_rank,
+        confidence=confidence,
+        factors=factors,
+    )
+
+
 def _merge_rankings(existing: list[dict], incoming: list[dict], *, key_fields: tuple[str, ...]) -> list[dict]:
     merged: dict[tuple[str, ...], dict] = {}
     for row in existing:
@@ -475,6 +562,7 @@ def _card_read(
         stats_metrics=_stats_metrics(profile, snapshot),
         source_rankings=_source_rankings(profile),
         school_rankings=_school_rankings(profile),
+        piniq_ranking=_piniq_ranking(db, profile, snapshot),
         achievements=list(profile.achievements or []),
         highlight_count=len(profile.highlights),
         updated_at=profile.updated_at,
@@ -528,6 +616,7 @@ def _profile_read(db: Session, profile: RecruitingProfile, current_user: User) -
         stats_metrics=_stats_metrics(profile, snapshot),
         source_rankings=_source_rankings(profile),
         school_rankings=_school_rankings(profile),
+        piniq_ranking=_piniq_ranking(db, profile, snapshot),
         record=_record_string(profile, snapshot),
         recent_matches=[_recent_match_read(item) for item in _recent_matches(db, profile.athlete_id)],
         highlights=[

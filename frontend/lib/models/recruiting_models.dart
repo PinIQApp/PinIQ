@@ -68,6 +68,32 @@ class RecruitingSchoolRankingModel {
   }
 }
 
+class RecruitingPinIqRankingModel {
+  const RecruitingPinIqRankingModel({
+    required this.score,
+    required this.tier,
+    required this.confidence,
+    this.stateRankHint,
+    this.nationalRankHint,
+  });
+
+  final double score;
+  final String tier;
+  final String confidence;
+  final int? stateRankHint;
+  final int? nationalRankHint;
+
+  factory RecruitingPinIqRankingModel.fromJson(Map<String, dynamic> json) {
+    return RecruitingPinIqRankingModel(
+      score: (json['score'] as num?)?.toDouble() ?? 0,
+      tier: json['tier'] as String? ?? 'Developing',
+      confidence: json['confidence'] as String? ?? 'low',
+      stateRankHint: json['state_rank_hint'] as int?,
+      nationalRankHint: json['national_rank_hint'] as int?,
+    );
+  }
+}
+
 class RecruitingAthleteModel {
   const RecruitingAthleteModel({
     required this.athleteId,
@@ -92,6 +118,7 @@ class RecruitingAthleteModel {
     this.trendLabel,
     this.winPercentage,
     this.bonusPointRate,
+    this.pinIqRanking,
   });
 
   final int athleteId;
@@ -110,6 +137,7 @@ class RecruitingAthleteModel {
   final String? trendLabel;
   final double? winPercentage;
   final double? bonusPointRate;
+  final RecruitingPinIqRankingModel? pinIqRanking;
   final List<RecruitingSourceRankingModel> sourceRankings;
   final List<RecruitingSchoolRankingModel> schoolRankings;
   final List<String> achievements;
@@ -135,6 +163,10 @@ class RecruitingAthleteModel {
       trendLabel: json['trend_label'] as String?,
       winPercentage: (json['win_percentage'] as num?)?.toDouble(),
       bonusPointRate: (json['bonus_point_rate'] as num?)?.toDouble(),
+      pinIqRanking: json['piniq_ranking'] == null
+          ? null
+          : RecruitingPinIqRankingModel.fromJson(
+              json['piniq_ranking'] as Map<String, dynamic>),
       sourceRankings: (json['source_rankings'] as List<dynamic>? ?? const [])
           .map((item) => RecruitingSourceRankingModel.fromJson(
               item as Map<String, dynamic>))

@@ -537,6 +537,18 @@ String _rankingLabel(RecruitingAthleteModel athlete) {
   return '${ranking.source} ${ranking.ranking ?? ranking.record ?? 'verified'}';
 }
 
+String _pinIqRankingNote(RecruitingAthleteModel athlete) {
+  final ranking = athlete.pinIqRanking;
+  if (ranking == null) return 'needs verified data';
+  final rankHints = [
+    if (ranking.stateRankHint != null) 'State #${ranking.stateRankHint}',
+    if (ranking.nationalRankHint != null)
+      'National #${ranking.nationalRankHint}',
+  ];
+  if (rankHints.isNotEmpty) return rankHints.join(' • ');
+  return '${ranking.tier} • ${ranking.confidence} confidence';
+}
+
 class _RecruitingDetailPanel extends StatelessWidget {
   const _RecruitingDetailPanel({
     required this.athlete,
@@ -601,9 +613,23 @@ class _RecruitingDetailPanel extends StatelessWidget {
             style: AppTextStyles.body.copyWith(color: AppColors.textPrimary),
           ),
           const SizedBox(height: AppSpacing.lg),
-          Row(
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
             children: [
-              Expanded(
+              SizedBox(
+                width: 170,
+                child: _RecruitingMetricCard(
+                  label: 'Pin IQ',
+                  value: athlete.pinIqRanking == null
+                      ? '--'
+                      : athlete.pinIqRanking!.score.toStringAsFixed(0),
+                  note: _pinIqRankingNote(athlete),
+                  color: AppColors.success,
+                ),
+              ),
+              SizedBox(
+                width: 170,
                 child: _RecruitingMetricCard(
                   label: 'Record',
                   value: athlete.record,
@@ -611,8 +637,8 @@ class _RecruitingDetailPanel extends StatelessWidget {
                   color: const Color(0xFF8B5CF6),
                 ),
               ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
+              SizedBox(
+                width: 190,
                 child: _RecruitingMetricCard(
                   label: 'Sources',
                   value: '${athlete.sourceRankings.length}',
