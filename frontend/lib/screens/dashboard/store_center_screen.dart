@@ -24,6 +24,8 @@ class _StoreCenterScreenState extends State<StoreCenterScreen> {
   String _filter = 'all';
   String _searchQuery = '';
   String? _selectedProductId;
+  String _selectedGearCategory = 'shirts';
+  String _selectedFulfillmentRoute = 'coach_approved_dropship';
 
   static const List<_BrandService> _brandServices = [
     _BrandService(
@@ -155,6 +157,77 @@ class _StoreCenterScreenState extends State<StoreCenterScreen> {
     ),
   ];
 
+  static const List<_BrandedGearCategory> _brandedGearCategories = [
+    _BrandedGearCategory(
+      key: 'shirts',
+      label: 'Shirts',
+      detail: 'Team tees, fan shirts, camp shirts, and parent gear.',
+      baseRange: '\$18-\$28',
+      icon: Icons.checkroom_outlined,
+    ),
+    _BrandedGearCategory(
+      key: 'sweatpants',
+      label: 'Sweatpants',
+      detail: 'Warmups, travel sweats, joggers, and team-issue bottoms.',
+      baseRange: '\$32-\$48',
+      icon: Icons.accessibility_new_rounded,
+    ),
+    _BrandedGearCategory(
+      key: 'shorts',
+      label: 'Shorts',
+      detail: 'Training shorts, fight shorts, and summer camp gear.',
+      baseRange: '\$24-\$38',
+      icon: Icons.sports_martial_arts_outlined,
+    ),
+    _BrandedGearCategory(
+      key: 'hats',
+      label: 'Hats',
+      detail: 'Caps, beanies, sideline hats, and fan merch accessories.',
+      baseRange: '\$18-\$32',
+      icon: Icons.face_rounded,
+    ),
+    _BrandedGearCategory(
+      key: 'hoodies',
+      label: 'Hoodies',
+      detail: 'Premium team hoodies with front, back, and sleeve options.',
+      baseRange: '\$38-\$58',
+      icon: Icons.dry_cleaning_rounded,
+    ),
+    _BrandedGearCategory(
+      key: 'team_packs',
+      label: 'Team packs',
+      detail: 'Singlets, warm-up sets, compression tops, bags, and bundles.',
+      baseRange: 'Quote',
+      icon: Icons.inventory_2_outlined,
+    ),
+  ];
+
+  static const List<_FulfillmentRoute> _fulfillmentRoutes = [
+    _FulfillmentRoute(
+      key: 'coach_approved_dropship',
+      label: 'Dropship vendor',
+      detail:
+          'Families order in the team store and approved vendors ship direct.',
+      bestFor: 'shirts, hoodies, hats',
+      icon: Icons.local_shipping_outlined,
+    ),
+    _FulfillmentRoute(
+      key: 'bulk_team_order',
+      label: 'Bulk team order',
+      detail:
+          'Coach collects sizes, submits one order, and distributes at practice.',
+      bestFor: 'sweats, warmups, singlets',
+      icon: Icons.groups_2_outlined,
+    ),
+    _FulfillmentRoute(
+      key: 'quote_then_invoice',
+      label: 'Quote first',
+      detail: 'Use a quote and approval step before charging for custom gear.',
+      bestFor: 'large packs, sponsor gear',
+      icon: Icons.request_quote_outlined,
+    ),
+  ];
+
   static const List<_MetricCardData> _metricCards = [
     _MetricCardData(
       label: 'Hook product',
@@ -254,6 +327,14 @@ class _StoreCenterScreenState extends State<StoreCenterScreen> {
             offerLadder: _offerLadder,
             operationsLanes: _operationsLanes,
             metricCards: _metricCards,
+            gearCategories: _brandedGearCategories,
+            fulfillmentRoutes: _fulfillmentRoutes,
+            selectedGearCategory: _selectedGearCategory,
+            selectedFulfillmentRoute: _selectedFulfillmentRoute,
+            onGearCategoryChanged: (value) =>
+                setState(() => _selectedGearCategory = value),
+            onFulfillmentRouteChanged: (value) =>
+                setState(() => _selectedFulfillmentRoute = value),
             onAddListing: _openCreateProduct,
             onEditListing: _openEditProduct,
             onOpenSubscriptions: () {
@@ -869,6 +950,12 @@ class _ManagementView extends StatelessWidget {
     required this.offerLadder,
     required this.operationsLanes,
     required this.metricCards,
+    required this.gearCategories,
+    required this.fulfillmentRoutes,
+    required this.selectedGearCategory,
+    required this.selectedFulfillmentRoute,
+    required this.onGearCategoryChanged,
+    required this.onFulfillmentRouteChanged,
     required this.onAddListing,
     required this.onEditListing,
     required this.onOpenSubscriptions,
@@ -880,6 +967,12 @@ class _ManagementView extends StatelessWidget {
   final List<_OfferStep> offerLadder;
   final List<_OperationsLane> operationsLanes;
   final List<_MetricCardData> metricCards;
+  final List<_BrandedGearCategory> gearCategories;
+  final List<_FulfillmentRoute> fulfillmentRoutes;
+  final String selectedGearCategory;
+  final String selectedFulfillmentRoute;
+  final ValueChanged<String> onGearCategoryChanged;
+  final ValueChanged<String> onFulfillmentRouteChanged;
   final VoidCallback onAddListing;
   final ValueChanged<OperatorProduct> onEditListing;
   final VoidCallback onOpenSubscriptions;
@@ -974,6 +1067,17 @@ class _ManagementView extends StatelessWidget {
         const SectionHeader(title: 'Operations'),
         const SizedBox(height: AppSpacing.md),
         _OperationsGrid(lanes: operationsLanes),
+        const SizedBox(height: AppSpacing.xl),
+        const SectionHeader(title: 'Branded gear fulfillment'),
+        const SizedBox(height: AppSpacing.md),
+        _BrandedGearFulfillmentPanel(
+          categories: gearCategories,
+          routes: fulfillmentRoutes,
+          selectedCategoryKey: selectedGearCategory,
+          selectedRouteKey: selectedFulfillmentRoute,
+          onCategoryChanged: onGearCategoryChanged,
+          onRouteChanged: onFulfillmentRouteChanged,
+        ),
         const SizedBox(height: AppSpacing.xl),
         const SectionHeader(title: 'Metrics that matter'),
         const SizedBox(height: AppSpacing.md),
@@ -1229,6 +1333,157 @@ class _OperationsLaneCard extends StatelessWidget {
                 .map((bullet) =>
                     _StoreBadge(label: bullet, color: const Color(0xFF64748B)))
                 .toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BrandedGearFulfillmentPanel extends StatelessWidget {
+  const _BrandedGearFulfillmentPanel({
+    required this.categories,
+    required this.routes,
+    required this.selectedCategoryKey,
+    required this.selectedRouteKey,
+    required this.onCategoryChanged,
+    required this.onRouteChanged,
+  });
+
+  final List<_BrandedGearCategory> categories;
+  final List<_FulfillmentRoute> routes;
+  final String selectedCategoryKey;
+  final String selectedRouteKey;
+  final ValueChanged<String> onCategoryChanged;
+  final ValueChanged<String> onRouteChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedCategory = categories.firstWhere(
+      (item) => item.key == selectedCategoryKey,
+      orElse: () => categories.first,
+    );
+    final selectedRoute = routes.firstWhere(
+      (item) => item.key == selectedRouteKey,
+      orElse: () => routes.first,
+    );
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.78),
+        borderRadius: BorderRadius.circular(28),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final wide = constraints.maxWidth >= 920;
+          final selector = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Gear type', style: AppTextStyles.cardTitle),
+              const SizedBox(height: AppSpacing.sm),
+              Wrap(
+                spacing: AppSpacing.xs,
+                runSpacing: AppSpacing.xs,
+                children: [
+                  for (final category in categories)
+                    ChoiceChip(
+                      avatar: Icon(category.icon, size: 18),
+                      label: Text(category.label),
+                      selected: selectedCategoryKey == category.key,
+                      onSelected: (_) => onCategoryChanged(category.key),
+                    ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Text('Fulfillment route', style: AppTextStyles.cardTitle),
+              const SizedBox(height: AppSpacing.sm),
+              Wrap(
+                spacing: AppSpacing.xs,
+                runSpacing: AppSpacing.xs,
+                children: [
+                  for (final route in routes)
+                    ChoiceChip(
+                      avatar: Icon(route.icon, size: 18),
+                      label: Text(route.label),
+                      selected: selectedRouteKey == route.key,
+                      onSelected: (_) => onRouteChanged(route.key),
+                    ),
+                ],
+              ),
+            ],
+          );
+          final summary = _FulfillmentSummaryCard(
+            category: selectedCategory,
+            route: selectedRoute,
+          );
+
+          if (!wide) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                selector,
+                const SizedBox(height: AppSpacing.lg),
+                summary,
+              ],
+            );
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(flex: 6, child: selector),
+              const SizedBox(width: AppSpacing.xl),
+              Expanded(flex: 5, child: summary),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _FulfillmentSummaryCard extends StatelessWidget {
+  const _FulfillmentSummaryCard({
+    required this.category,
+    required this.route,
+  });
+
+  final _BrandedGearCategory category;
+  final _FulfillmentRoute route;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceElevated.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(category.icon, color: const Color(0xFF38BDF8)),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                  child: Text(category.label, style: AppTextStyles.cardTitle)),
+              _StoreBadge(
+                  label: category.baseRange, color: const Color(0xFF14B8A6)),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(category.detail, style: AppTextStyles.body),
+          const SizedBox(height: AppSpacing.lg),
+          _SpotlightRow(label: 'Route', value: route.label),
+          _SpotlightRow(label: 'Best for', value: route.bestFor),
+          _SpotlightRow(label: 'Flow', value: route.detail),
+          const SizedBox(height: AppSpacing.md),
+          Text(
+            'Coach can use this route to decide whether gear is direct-to-family, one bulk order, or quote-first before payment.',
+            style:
+                AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
           ),
         ],
       ),
@@ -2613,6 +2868,38 @@ class _OperationsLane {
   final String title;
   final String summary;
   final List<String> bullets;
+}
+
+class _BrandedGearCategory {
+  const _BrandedGearCategory({
+    required this.key,
+    required this.label,
+    required this.detail,
+    required this.baseRange,
+    required this.icon,
+  });
+
+  final String key;
+  final String label;
+  final String detail;
+  final String baseRange;
+  final IconData icon;
+}
+
+class _FulfillmentRoute {
+  const _FulfillmentRoute({
+    required this.key,
+    required this.label,
+    required this.detail,
+    required this.bestFor,
+    required this.icon,
+  });
+
+  final String key;
+  final String label;
+  final String detail;
+  final String bestFor;
+  final IconData icon;
 }
 
 class _MetricCardData {

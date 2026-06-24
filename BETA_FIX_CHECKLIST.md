@@ -44,15 +44,15 @@ Use this file as the working checklist so fixes happen in small, verifiable chun
   - [x] Add Walmart planning estimates to parent nutrition grocery items.
   - [x] Add athlete-size serving guidance to grocery quantities.
 - [x] Remove or update products with bad prices.
-- [ ] Add store/dropshipping options for coach-selected branded gear.
-- [ ] Include branded gear categories:
-  - [ ] Shirts
-  - [ ] Sweatpants
-  - [ ] Shorts
-  - [ ] Hats
-  - [ ] Hoodies
-  - [ ] Other relevant team gear
-- [ ] Let coaches choose who fulfills gear and how orders are handled.
+- [x] Add store/dropshipping options for coach-selected branded gear.
+- [x] Include branded gear categories:
+  - [x] Shirts
+  - [x] Sweatpants
+  - [x] Shorts
+  - [x] Hats
+  - [x] Hoodies
+  - [x] Other relevant team gear
+- [x] Let coaches choose who fulfills gear and how orders are handled.
 
 ## 5. Workouts + Timers
 
@@ -79,7 +79,7 @@ Use this file as the working checklist so fixes happen in small, verifiable chun
 
 - [ ] Run focused backend tests for changed backend logic.
 - [x] Run focused tournament backend tests.
-- [ ] Run `flutter analyze`.
+- [x] Run `flutter analyze`.
 - [ ] Run Flutter web build.
 - [ ] Commit each chunk with a clear message.
 - [ ] Push to GitHub.
