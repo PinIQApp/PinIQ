@@ -36,6 +36,7 @@ class _TournamentCenterScreenState extends State<TournamentCenterScreen> {
   bool _isLoading = true;
   bool _isScanning = false;
   String? _error;
+  String? _scanStatus;
   List<TournamentExternalModel> _discovered = const [];
   List<TournamentSourceModel> _sources = const [];
 
@@ -113,11 +114,14 @@ class _TournamentCenterScreenState extends State<TournamentCenterScreen> {
     setState(() {
       _isScanning = true;
       _error = null;
+      _scanStatus = null;
     });
 
     try {
+      var seen = 0;
+      var changed = 0;
       for (final sourceKey in sourceKeys) {
-        await appState.api.runLiveTournamentScan(
+        final scan = await appState.api.runLiveTournamentScan(
           token: appState.token!,
           sourceKey: sourceKey,
           search: _searchController.text.trim().isEmpty
@@ -129,8 +133,16 @@ class _TournamentCenterScreenState extends State<TournamentCenterScreen> {
           division: _scanDivision == 'all' ? null : _scanDivision,
           style: _scanStyle == 'all' ? null : _scanStyle,
         );
+        seen += scan['items_seen_count'] as int? ?? 0;
+        changed += (scan['items_created_count'] as int? ?? 0) +
+            (scan['items_updated_count'] as int? ?? 0);
       }
       await _loadTournaments();
+      if (!mounted) return;
+      setState(() {
+        _scanStatus =
+            'Scan complete: $seen source row${seen == 1 ? '' : 's'} checked, $changed event${changed == 1 ? '' : 's'} added or updated.';
+      });
     } catch (error) {
       if (!mounted) return;
       setState(() => _error = error.toString());
@@ -538,6 +550,14 @@ class _TournamentCenterScreenState extends State<TournamentCenterScreen> {
               onAddTournament: _openAddTournamentDialog,
               onOpenDuals: _openDualsManager,
             ),
+            if (_scanStatus != null) ...[
+              const SizedBox(height: AppSpacing.md),
+              _StatusBanner(
+                message: _scanStatus!,
+                color: AppColors.success,
+                icon: Icons.check_circle_outline,
+              ),
+            ],
             const SizedBox(height: AppSpacing.lg),
             _SummaryBand(
               accent: const Color(0xFFF59E0B),
@@ -562,7 +582,11 @@ class _TournamentCenterScreenState extends State<TournamentCenterScreen> {
             ),
             const SizedBox(height: AppSpacing.xl),
             if (_error != null) ...[
-              _EmptyPanel(message: _error!),
+              _EmptyPanel(
+                message: _error!.replaceFirst('Exception: ', ''),
+                actionLabel: 'Try again',
+                onAction: _runLiveScan,
+              ),
               const SizedBox(height: AppSpacing.xl),
             ],
             _TournamentDecisionBoard(
@@ -572,13 +596,18 @@ class _TournamentCenterScreenState extends State<TournamentCenterScreen> {
             ),
             const SizedBox(height: AppSpacing.xl),
             if (_isLoading) ...[
-              const _EmptyPanel(
-                  message: 'Loading real tournament discovery results...'),
+              const _StatusBanner(
+                message: 'Loading tournament discovery results...',
+                color: AppColors.warning,
+                icon: Icons.sync_rounded,
+              ),
               const SizedBox(height: AppSpacing.xl),
             ] else if (records.isEmpty) ...[
-              const _EmptyPanel(
+              _EmptyPanel(
                 message:
-                    'No discovered tournaments are in the system yet. The screen is now using the backend, so TrackWrestling, FloWrestling, and USA Bracketing need real source ingestion before results will appear here.',
+                    'No tournaments are showing for the current search and filters. Run a live scan, broaden filters, or add a known event manually.',
+                actionLabel: _isScanning ? null : 'Run live scan',
+                onAction: _isScanning ? null : _runLiveScan,
               ),
               const SizedBox(height: AppSpacing.xl),
             ],
@@ -1056,11 +1085,13 @@ class _TournamentListPanel extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.lg),
             if (!isLoading && records.isEmpty)
-              const Padding(
-                padding: EdgeInsets.only(bottom: AppSpacing.sm),
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                 child: _EmptyPanel(
                   message:
-                      'No tournaments match the current backend filters yet.',
+                      'No tournaments match these filters. Try all sources, clear the search, include past events, or run a fresh scan.',
+                  actionLabel: isScanning ? null : 'Run scan',
+                  onAction: isScanning ? null : onRunLiveScan,
                 ),
               ),
             ...List.generate(records.length, (index) {
@@ -1701,7 +1732,8 @@ class _ScannerStatusRow extends StatelessWidget {
             _StatusCard(
               title: 'Tournament sources',
               value: 'Waiting',
-              subtitle: 'No backend sources were returned yet.',
+              subtitle:
+                  'No source records came back from the backend. Refresh or check API health.',
               color: AppColors.textMuted,
             ),
           ]
@@ -1722,6 +1754,42 @@ class _ScannerStatusRow extends StatelessWidget {
       spacing: AppSpacing.md,
       runSpacing: AppSpacing.md,
       children: cards.map((card) => SizedBox(width: 260, child: card)).toList(),
+    );
+  }
+}
+
+class _StatusBanner extends StatelessWidget {
+  const _StatusBanner({
+    required this.message,
+    required this.color,
+    required this.icon,
+  });
+
+  final String message;
+  final Color color;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: color.withValues(alpha: 0.28)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              message,
+              style: AppTextStyles.body.copyWith(color: AppColors.textPrimary),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -2062,9 +2130,15 @@ class _Pill extends StatelessWidget {
 }
 
 class _EmptyPanel extends StatelessWidget {
-  const _EmptyPanel({required this.message});
+  const _EmptyPanel({
+    required this.message,
+    this.actionLabel,
+    this.onAction,
+  });
 
   final String message;
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) {
@@ -2075,7 +2149,20 @@ class _EmptyPanel extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
         border: Border.all(color: AppColors.border),
       ),
-      child: Text(message, style: AppTextStyles.body),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(message, style: AppTextStyles.body),
+          if (actionLabel != null && onAction != null) ...[
+            const SizedBox(height: AppSpacing.md),
+            OutlinedButton.icon(
+              onPressed: onAction,
+              icon: const Icon(Icons.travel_explore_rounded),
+              label: Text(actionLabel!),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

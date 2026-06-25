@@ -72,7 +72,7 @@ Use this file as the working checklist so fixes happen in small, verifiable chun
 - [x] Fix tournament page so scan actually finds tournaments.
   - [x] Add fallback discovery records when a live source returns no parseable rows.
 - [x] Test scan against supported sources.
-- [ ] Show useful loading/error/empty states.
+- [x] Show useful loading/error/empty states.
 - [ ] Improve tournament page visual layout.
 
 ## 7. Recruiting Rankings + Pin IQ Ranking Engine
