@@ -32,11 +32,11 @@ Use this file as the working checklist so fixes happen in small, verifiable chun
 
 ## 3. Nutrition Planner
 
-- [ ] Audit nutrition planner flow end to end.
+- [x] Audit nutrition planner flow end to end.
 - [x] Fix risk scoring so losing about 1 lb/week is not automatically red unless body fat percentage or safety context makes it unsafe.
 - [x] Add body fat percentage sensitivity to weight-loss risk scoring.
 - [x] Confirm 14 lb over 90 days is not red by default.
-- [ ] Improve nutrition page visual layout and reduce boxy sections.
+- [x] Improve nutrition page visual layout and reduce boxy sections.
 
 ## 4. Store + Pricing
 

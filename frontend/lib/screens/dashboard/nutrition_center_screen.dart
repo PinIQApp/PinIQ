@@ -144,7 +144,7 @@ class _NutritionCenterScreenState extends State<NutritionCenterScreen> {
                   subtitle:
                       'Run safer meal plans, clearer family handoffs, and tighter coach oversight.',
                 ),
-                const SizedBox(height: AppSpacing.lg),
+                const SizedBox(height: AppSpacing.md),
                 _NutritionHeroBar(
                   reviewCount: reviewCount,
                   readyCount: readyCount,
@@ -152,13 +152,13 @@ class _NutritionCenterScreenState extends State<NutritionCenterScreen> {
                   onCreatePlan: () => _openPlanner(appState),
                   onOpenBodyFatCalculator: _openBodyFatCalculator,
                 ),
-                const SizedBox(height: AppSpacing.xl),
+                const SizedBox(height: AppSpacing.lg),
                 if (isWide)
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       SizedBox(
-                        width: 330,
+                        width: 318,
                         child: _NutritionAthleteRail(
                           profiles: profiles,
                           selectedIndex: _selectedProfileIndex,
@@ -239,7 +239,7 @@ class _NutritionCenterScreenState extends State<NutritionCenterScreen> {
                     onSelect: _selectPlan,
                   ),
                 ],
-                const SizedBox(height: AppSpacing.xl),
+                const SizedBox(height: AppSpacing.lg),
                 const SectionHeader(title: 'Coach support lane'),
                 const SizedBox(height: AppSpacing.md),
                 _NutritionSupportStrip(
@@ -394,18 +394,27 @@ class _NutritionHeroBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.xl),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFF111C2D),
-            Color(0xFF0C1420),
+            Color(0xFF132033),
+            Color(0xFF0A141F),
+            Color(0xFF102A23),
           ],
+          stops: [0, 0.58, 1],
         ),
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.72)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.26),
+            blurRadius: 28,
+            offset: const Offset(0, 18),
+          ),
+        ],
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -446,11 +455,11 @@ class _NutritionHeroBar extends StatelessWidget {
           );
 
           final metrics = Wrap(
-            spacing: AppSpacing.md,
-            runSpacing: AppSpacing.md,
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
             children: [
               SizedBox(
-                width: 180,
+                width: 172,
                 child: _NutritionMetric(
                   label: 'Needs review',
                   value: '$reviewCount',
@@ -459,7 +468,7 @@ class _NutritionHeroBar extends StatelessWidget {
                 ),
               ),
               SizedBox(
-                width: 180,
+                width: 172,
                 child: _NutritionMetric(
                   label: 'Ready to share',
                   value: '$readyCount',
@@ -468,7 +477,7 @@ class _NutritionHeroBar extends StatelessWidget {
                 ),
               ),
               SizedBox(
-                width: 180,
+                width: 172,
                 child: _NutritionMetric(
                   label: 'Body fat on file',
                   value: '$bodyFatCount',
@@ -518,11 +527,11 @@ class _NutritionAthleteRail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.xl),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-        border: Border.all(color: AppColors.border),
+        color: AppColors.surface.withValues(alpha: 0.68),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.68)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -554,14 +563,23 @@ class _NutritionAthleteRail extends StatelessWidget {
                   padding: const EdgeInsets.all(AppSpacing.md),
                   decoration: BoxDecoration(
                     color: selected
-                        ? AppColors.surfaceElevated
-                        : AppColors.surface.withValues(alpha: 0.72),
-                    borderRadius: BorderRadius.circular(18),
+                        ? AppColors.surfaceElevated.withValues(alpha: 0.9)
+                        : AppColors.surface.withValues(alpha: 0.32),
+                    borderRadius: BorderRadius.circular(22),
                     border: Border.all(
                       color: selected
                           ? accent.withValues(alpha: 0.45)
-                          : AppColors.border,
+                          : AppColors.border.withValues(alpha: 0.42),
                     ),
+                    boxShadow: selected
+                        ? [
+                            BoxShadow(
+                              color: accent.withValues(alpha: 0.08),
+                              blurRadius: 18,
+                              offset: const Offset(0, 10),
+                            ),
+                          ]
+                        : null,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -613,11 +631,11 @@ class _NutritionCoachWorkspace extends StatelessWidget {
   Widget build(BuildContext context) {
     if (plan == null) {
       return Container(
-        padding: const EdgeInsets.all(AppSpacing.xl),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-          border: Border.all(color: AppColors.border),
+          color: AppColors.surface.withValues(alpha: 0.68),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: AppColors.border.withValues(alpha: 0.68)),
         ),
         child: Text(
             'Select an athlete or nutrition plan to open the coach workspace.',
@@ -642,11 +660,11 @@ class _NutritionCoachWorkspace extends StatelessWidget {
     };
 
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.xl),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-        border: Border.all(color: AppColors.border),
+        color: AppColors.surface.withValues(alpha: 0.68),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.68)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -685,7 +703,7 @@ class _NutritionCoachWorkspace extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(AppSpacing.md),
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceElevated.withValues(alpha: 0.7),
+                  color: AppColors.surface.withValues(alpha: 0.46),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Column(
@@ -825,11 +843,11 @@ class _NutritionPlanBoard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.xl),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-        border: Border.all(color: AppColors.border),
+        color: AppColors.surface.withValues(alpha: 0.68),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.68)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -969,9 +987,9 @@ class _SupportCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.border),
+        color: AppColors.surface.withValues(alpha: 0.58),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.62)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1012,9 +1030,9 @@ class _WorkspaceCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated.withValues(alpha: 0.72),
+        color: AppColors.surface.withValues(alpha: 0.42),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.52)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1058,12 +1076,23 @@ class _PlanRow extends StatelessWidget {
         padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
           color: selected
-              ? AppColors.surfaceElevated
-              : AppColors.surface.withValues(alpha: 0.72),
-          borderRadius: BorderRadius.circular(18),
+              ? AppColors.surfaceElevated.withValues(alpha: 0.9)
+              : AppColors.surface.withValues(alpha: 0.34),
+          borderRadius: BorderRadius.circular(22),
           border: Border.all(
-              color:
-                  selected ? accent.withValues(alpha: 0.45) : AppColors.border),
+            color: selected
+                ? accent.withValues(alpha: 0.45)
+                : AppColors.border.withValues(alpha: 0.46),
+          ),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: accent.withValues(alpha: 0.08),
+                    blurRadius: 18,
+                    offset: const Offset(0, 10),
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1113,20 +1142,37 @@ class _NutritionMetric extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.72),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.border),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.42),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.62)),
+      ),
+      child: Row(
         children: [
-          Text(label, style: AppTextStyles.caption),
-          const SizedBox(height: AppSpacing.sm),
+          Container(
+            width: 8,
+            height: 34,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(99),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
           Text(value, style: AppTextStyles.cardTitle.copyWith(color: color)),
-          const SizedBox(height: AppSpacing.xxs),
-          Text(note, style: AppTextStyles.caption),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: AppTextStyles.caption),
+                Text(note, style: AppTextStyles.caption),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -1164,8 +1210,8 @@ class _NutritionEmptyState extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated.withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(18),
+        color: AppColors.surface.withValues(alpha: 0.42),
+        borderRadius: BorderRadius.circular(22),
       ),
       child: Text('No nutrition plans match this filter right now.',
           style: AppTextStyles.body),
