@@ -28,7 +28,7 @@ Use this file as the working checklist so fixes happen in small, verifiable chun
   - [x] Redeploy API and retest branding save.
 - [x] Confirm branding updates persist in the backend.
 - [x] Confirm updated colors/logo/name appear after refresh.
-- [ ] Improve branding page layout so it does not feel like a form dumped on a page.
+- [x] Improve branding page layout so it does not feel like a form dumped on a page.
 
 ## 3. Nutrition Planner
 
