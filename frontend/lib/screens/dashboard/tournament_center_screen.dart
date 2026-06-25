@@ -558,7 +558,7 @@ class _TournamentCenterScreenState extends State<TournamentCenterScreen> {
                 icon: Icons.check_circle_outline,
               ),
             ],
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.md),
             _SummaryBand(
               accent: const Color(0xFFF59E0B),
               items: [
@@ -580,28 +580,28 @@ class _TournamentCenterScreenState extends State<TournamentCenterScreen> {
                     note: 'configured sources'),
               ],
             ),
-            const SizedBox(height: AppSpacing.xl),
+            const SizedBox(height: AppSpacing.lg),
             if (_error != null) ...[
               _EmptyPanel(
                 message: _error!.replaceFirst('Exception: ', ''),
                 actionLabel: 'Try again',
                 onAction: _runLiveScan,
               ),
-              const SizedBox(height: AppSpacing.xl),
+              const SizedBox(height: AppSpacing.lg),
             ],
             _TournamentDecisionBoard(
               savedCount: savedCount,
               reviewCount: reviewCount,
               girlsCount: girlsCount,
             ),
-            const SizedBox(height: AppSpacing.xl),
+            const SizedBox(height: AppSpacing.lg),
             if (_isLoading) ...[
               const _StatusBanner(
                 message: 'Loading tournament discovery results...',
                 color: AppColors.warning,
                 icon: Icons.sync_rounded,
               ),
-              const SizedBox(height: AppSpacing.xl),
+              const SizedBox(height: AppSpacing.lg),
             ] else if (records.isEmpty) ...[
               _EmptyPanel(
                 message:
@@ -609,7 +609,7 @@ class _TournamentCenterScreenState extends State<TournamentCenterScreen> {
                 actionLabel: _isScanning ? null : 'Run live scan',
                 onAction: _isScanning ? null : _runLiveScan,
               ),
-              const SizedBox(height: AppSpacing.xl),
+              const SizedBox(height: AppSpacing.lg),
             ],
             if (isWide)
               Row(
@@ -815,11 +815,27 @@ class _TournamentCommandDeck extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.xl),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated.withValues(alpha: 0.96),
-        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-        border: Border.all(color: AppColors.border),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF152033),
+            Color(0xFF111A28),
+            Color(0xFF251017),
+          ],
+          stops: [0, 0.56, 1],
+        ),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.72)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.28),
+            blurRadius: 28,
+            offset: const Offset(0, 18),
+          ),
+        ],
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -827,7 +843,27 @@ class _TournamentCommandDeck extends StatelessWidget {
           final actions = Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Tournament command', style: AppTextStyles.bodyStrong),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF59E0B).withValues(alpha: 0.16),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      Icons.travel_explore_rounded,
+                      color: Color(0xFFF59E0B),
+                      size: 19,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Text('Tournament command', style: AppTextStyles.bodyStrong),
+                ],
+              ),
               const SizedBox(height: AppSpacing.sm),
               Text(
                 'Search live events, save the right ones, and move straight into coach actions without bouncing between pages.',
@@ -899,12 +935,21 @@ class _TournamentCommandDeck extends StatelessWidget {
           );
 
           final metrics = Wrap(
-            spacing: AppSpacing.md,
-            runSpacing: AppSpacing.md,
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
             children: [
-              _MetricBox(label: 'Saved events', value: '$savedCount'),
-              _MetricBox(label: 'Need review', value: '$reviewCount'),
-              _MetricBox(label: 'Live sources', value: '$sourceCount'),
+              SizedBox(
+                  width: 168,
+                  child:
+                      _MetricBox(label: 'Saved events', value: '$savedCount')),
+              SizedBox(
+                  width: 168,
+                  child:
+                      _MetricBox(label: 'Need review', value: '$reviewCount')),
+              SizedBox(
+                  width: 168,
+                  child:
+                      _MetricBox(label: 'Live sources', value: '$sourceCount')),
             ],
           );
 
@@ -974,11 +1019,11 @@ class _TournamentListPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) => Container(
-        padding: const EdgeInsets.all(AppSpacing.xl),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-          border: Border.all(color: AppColors.border),
+          color: AppColors.surface.withValues(alpha: 0.72),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: AppColors.border.withValues(alpha: 0.72)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1137,14 +1182,23 @@ class _TournamentRow extends StatelessWidget {
           padding: const EdgeInsets.all(AppSpacing.md),
           decoration: BoxDecoration(
             color: selected
-                ? AppColors.surfaceElevated
-                : AppColors.surface.withValues(alpha: 0.72),
-            borderRadius: BorderRadius.circular(18),
+                ? const Color(0xFF172033)
+                : AppColors.surface.withValues(alpha: 0.36),
+            borderRadius: BorderRadius.circular(22),
             border: Border.all(
               color: selected
-                  ? const Color(0xFFF59E0B).withValues(alpha: 0.4)
-                  : AppColors.border,
+                  ? const Color(0xFFF59E0B).withValues(alpha: 0.48)
+                  : AppColors.border.withValues(alpha: 0.46),
             ),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: const Color(0xFFF59E0B).withValues(alpha: 0.08),
+                      blurRadius: 18,
+                      offset: const Offset(0, 10),
+                    ),
+                  ]
+                : null,
           ),
           child: Row(
             children: [
@@ -1235,11 +1289,11 @@ class _TournamentDetailPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.xl),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-        border: Border.all(color: AppColors.border),
+        color: AppColors.surface.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.72)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1972,31 +2026,22 @@ class _SummaryBand extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        gradient: AppColors.brandedGradient(
-            primary: accent, secondary: AppColors.surfaceElevated),
-        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Wrap(
-        spacing: AppSpacing.md,
-        runSpacing: AppSpacing.md,
-        children: items
-            .map(
-              (item) => SizedBox(
-                width: 220,
-                child: _StatusCard(
-                  title: item.label,
-                  value: item.value,
-                  subtitle: item.note,
-                  color: accent,
-                ),
+    return Wrap(
+      spacing: AppSpacing.sm,
+      runSpacing: AppSpacing.sm,
+      children: items
+          .map(
+            (item) => SizedBox(
+              width: 230,
+              child: _StatusCard(
+                title: item.label,
+                value: item.value,
+                subtitle: item.note,
+                color: accent,
               ),
-            )
-            .toList(),
-      ),
+            ),
+          )
+          .toList(),
     );
   }
 }
@@ -2029,20 +2074,37 @@ class _StatusCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.76),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.border),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.42),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.72)),
+      ),
+      child: Row(
         children: [
-          Text(title, style: AppTextStyles.caption),
-          const SizedBox(height: AppSpacing.sm),
-          Text(value, style: AppTextStyles.cardTitle.copyWith(color: color)),
-          const SizedBox(height: AppSpacing.xxs),
-          Text(subtitle, style: AppTextStyles.caption),
+          Container(
+            width: 8,
+            height: 36,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(99),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Text(value, style: AppTextStyles.bodyStrong.copyWith(color: color)),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AppTextStyles.caption),
+                Text(subtitle, style: AppTextStyles.caption),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -2063,9 +2125,9 @@ class _MetricBox extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: AppColors.surface.withValues(alpha: 0.46),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.72)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
