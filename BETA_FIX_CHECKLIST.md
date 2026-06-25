@@ -65,7 +65,7 @@ Use this file as the working checklist so fixes happen in small, verifiable chun
 - [x] Add Timer to all other workouts where drills run by time.
 - [x] Remove Stance Motion Timer from the main Hub.
 - [x] Keep Stance Motion Timer only inside Today's Training.
-- [ ] Improve workout screens visually.
+- [x] Improve workout screens visually.
 
 ## 6. Tournaments
 

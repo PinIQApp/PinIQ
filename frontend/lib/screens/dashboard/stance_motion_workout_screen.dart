@@ -186,13 +186,13 @@ class _StanceMotionWorkoutScreenState extends State<StanceMotionWorkoutScreen> {
               title: widget.title,
               subtitle: widget.subtitle,
             ),
-            const SizedBox(height: AppSpacing.xl),
+            const SizedBox(height: AppSpacing.lg),
             _WorkoutPanel(
               currentCue: _currentCue,
               timeLabel: _timeLabel,
               isRunning: _isRunning,
             ),
-            const SizedBox(height: AppSpacing.xl),
+            const SizedBox(height: AppSpacing.lg),
             Text('Round length', style: AppTextStyles.sectionTitle),
             const SizedBox(height: AppSpacing.md),
             Wrap(
@@ -294,11 +294,27 @@ class _WorkoutPanel extends StatelessWidget {
     final accent = Theme.of(context).colorScheme.primary;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.xl),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated.withValues(alpha: 0.96),
-        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-        border: Border.all(color: AppColors.hairline.withValues(alpha: 0.65)),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF14243A),
+            Color(0xFF0A141F),
+            Color(0xFF122B22),
+          ],
+          stops: [0, 0.58, 1],
+        ),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.68)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.25),
+            blurRadius: 28,
+            offset: const Offset(0, 18),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -423,12 +439,12 @@ class _DurationButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected
               ? accent.withValues(alpha: 0.18)
-              : AppColors.surface.withValues(alpha: 0.72),
-          borderRadius: BorderRadius.circular(16),
+              : AppColors.surface.withValues(alpha: 0.42),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: selected
                 ? accent.withValues(alpha: 0.62)
-                : AppColors.hairline.withValues(alpha: 0.55),
+                : AppColors.border.withValues(alpha: 0.5),
           ),
         ),
         child: Center(
