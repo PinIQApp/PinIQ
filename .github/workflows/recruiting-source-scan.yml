@@ -1,0 +1,48 @@
+name: Recruiting Source Scan
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Maximum saved recruiting profiles to scan"
+        required: false
+        default: "100"
+  schedule:
+    - cron: "17 8 * * *"
+
+concurrency:
+  group: recruiting-source-scan
+  cancel-in-progress: false
+
+jobs:
+  scan-saved-sources:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: ${{ secrets.RECRUITING_SCAN_DATABASE_URL }}
+      SCAN_LIMIT: ${{ github.event.inputs.limit || '100' }}
+      ENVIRONMENT: staging
+      SEED_DEMO_DATA_ON_STARTUP: "false"
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Validate configuration
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "RECRUITING_SCAN_DATABASE_URL repository secret is required."
+            exit 1
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run saved recruiting source scan
+        run: python scripts/run_recruiting_source_scan.py --limit "$SCAN_LIMIT" --show-failures

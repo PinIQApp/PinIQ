@@ -87,7 +87,7 @@ Use this file as the working checklist so fixes happen in small, verifiable chun
 - [x] Add frontend UI for coaches to paste/save ranking source URLs.
 - [ ] Add scheduled auto-scan job for saved public source URLs.
   - [x] Remove paid Render cron from the blueprint.
-  - [ ] Add free GitHub Actions scheduled workflow for nightly saved recruiting scans.
+  - [x] Add free GitHub Actions scheduled workflow for nightly saved recruiting scans.
   - [ ] Add `RECRUITING_SCAN_DATABASE_URL` repository secret for the scheduled workflow.
 - [x] Add source-specific parser hardening for KentuckyMat ranking/results pages.
 - [x] Add source-specific parser hardening for TrackWrestling public rankings pages.
