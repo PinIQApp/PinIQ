@@ -7,8 +7,10 @@ import 'package:http/http.dart' as http;
 
 import '../models/messaging_models.dart';
 import '../models/ai_replay_models.dart';
+import '../models/athlete_invitation_model.dart';
 import '../models/recruiting_models.dart';
 import '../models/team_model.dart';
+import '../models/team_workout_model.dart';
 import '../models/tournament_models.dart';
 import '../models/user_profile.dart';
 import '../models/weight_models.dart';
@@ -355,6 +357,132 @@ class ApiService {
     return TeamModel.fromJson(data);
   }
 
+  Future<AthleteInvitationModel> inviteAthleteParent({
+    required String token,
+    required int teamId,
+    required Map<String, dynamic> payload,
+  }) async {
+    final response = await _post(
+      Uri.parse('$baseUrl/api/v1/teams/$teamId/athlete-invitations'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(payload),
+    );
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode >= 400) {
+      throw Exception(data['detail'] ?? 'Athlete invitation failed');
+    }
+    return AthleteInvitationModel.fromJson(data);
+  }
+
+  Future<List<AthleteInvitationModel>> teamAthleteInvitations({
+    required String token,
+    required int teamId,
+  }) async {
+    final response = await _get(
+      Uri.parse('$baseUrl/api/v1/teams/$teamId/athlete-invitations'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode >= 400) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      throw Exception(data['detail'] ?? 'Load athlete invitations failed');
+    }
+    final data = jsonDecode(response.body) as List<dynamic>;
+    return data
+        .map((item) => AthleteInvitationModel.fromJson(
+              item as Map<String, dynamic>,
+            ))
+        .toList();
+  }
+
+  Future<List<AthleteInvitationModel>> myAthleteInvitations({
+    required String token,
+  }) async {
+    final response = await _get(
+      Uri.parse('$baseUrl/api/v1/athlete-invitations/mine'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode >= 400) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      throw Exception(data['detail'] ?? 'Load invitations failed');
+    }
+    final data = jsonDecode(response.body) as List<dynamic>;
+    return data
+        .map((item) => AthleteInvitationModel.fromJson(
+              item as Map<String, dynamic>,
+            ))
+        .toList();
+  }
+
+  Future<AthleteInvitationModel> acceptAthleteInvitation({
+    required String token,
+    required int invitationId,
+  }) async {
+    final response = await _post(
+      Uri.parse('$baseUrl/api/v1/athlete-invitations/$invitationId/accept'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode >= 400) {
+      throw Exception(data['detail'] ?? 'Accept invitation failed');
+    }
+    return AthleteInvitationModel.fromJson(data);
+  }
+
+  Future<AthleteInvitationModel> declineAthleteInvitation({
+    required String token,
+    required int invitationId,
+  }) async {
+    final response = await _post(
+      Uri.parse('$baseUrl/api/v1/athlete-invitations/$invitationId/decline'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode >= 400) {
+      throw Exception(data['detail'] ?? 'Decline invitation failed');
+    }
+    return AthleteInvitationModel.fromJson(data);
+  }
+
+  Future<ManagedAthleteProfileModel> managedAthleteProfile({
+    required String token,
+    required int teamId,
+    required int athleteId,
+  }) async {
+    final response = await _get(
+      Uri.parse('$baseUrl/api/v1/teams/$teamId/athletes/$athleteId'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode >= 400) {
+      throw Exception(data['detail'] ?? 'Load athlete profile failed');
+    }
+    return ManagedAthleteProfileModel.fromJson(data);
+  }
+
+  Future<ManagedAthleteProfileModel> updateManagedAthleteProfile({
+    required String token,
+    required int teamId,
+    required int athleteId,
+    required Map<String, dynamic> payload,
+  }) async {
+    final response = await _put(
+      Uri.parse('$baseUrl/api/v1/teams/$teamId/athletes/$athleteId'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(payload),
+    );
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode >= 400) {
+      throw Exception(data['detail'] ?? 'Update athlete profile failed');
+    }
+    return ManagedAthleteProfileModel.fromJson(data);
+  }
+
   Future<String> rotateJoinCode({
     required String token,
     required int teamId,
@@ -368,6 +496,92 @@ class ApiService {
       throw Exception(data['detail'] ?? 'Rotate join code failed');
     }
     return data['join_code'] as String;
+  }
+
+  Future<List<TeamWorkoutModel>> teamWorkouts({
+    required String token,
+    required int teamId,
+  }) async {
+    final response = await _get(
+      Uri.parse('$baseUrl/api/v1/practices/team/$teamId'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode >= 400) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      throw Exception(data['detail'] ?? 'Load workouts failed');
+    }
+    final data = jsonDecode(response.body) as List<dynamic>;
+    return data
+        .map((item) => TeamWorkoutModel.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<TeamWorkoutDetailModel> workoutDetail({
+    required String token,
+    required int workoutId,
+  }) async {
+    final response = await _get(
+      Uri.parse('$baseUrl/api/v1/practices/$workoutId'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode >= 400) {
+      throw Exception(data['detail'] ?? 'Load workout failed');
+    }
+    return TeamWorkoutDetailModel.fromJson(data);
+  }
+
+  Future<TeamWorkoutDetailModel> createWorkout({
+    required String token,
+    required Map<String, dynamic> payload,
+  }) async {
+    final response = await _post(
+      Uri.parse('$baseUrl/api/v1/practices'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(payload),
+    );
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode >= 400) {
+      throw Exception(data['detail'] ?? 'Create workout failed');
+    }
+    return TeamWorkoutDetailModel.fromJson(data);
+  }
+
+  Future<TeamWorkoutDetailModel> updateWorkout({
+    required String token,
+    required int workoutId,
+    required Map<String, dynamic> payload,
+  }) async {
+    final response = await _patch(
+      Uri.parse('$baseUrl/api/v1/practices/$workoutId'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(payload),
+    );
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode >= 400) {
+      throw Exception(data['detail'] ?? 'Update workout failed');
+    }
+    return TeamWorkoutDetailModel.fromJson(data);
+  }
+
+  Future<void> deleteWorkout({
+    required String token,
+    required int workoutId,
+  }) async {
+    final response = await _delete(
+      Uri.parse('$baseUrl/api/v1/practices/$workoutId'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode >= 400) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      throw Exception(data['detail'] ?? 'Delete workout failed');
+    }
   }
 
   Future<TeamModel> uploadLogo({

@@ -29,6 +29,7 @@ from app.services.schedule_planner import (
     create_practice_plan,
     create_template,
     delete_event,
+    delete_practice_plan,
     duplicate_practice,
     list_events_for_team,
     list_practices_for_team,
@@ -135,6 +136,17 @@ def patch_practice(
     practice = update_practice_plan(db, practice_id=practice_id, payload=payload, current_user=current_user)
     db.commit()
     return practice
+
+
+@router.delete("/practices/{practice_id}", status_code=status.HTTP_204_NO_CONTENT)
+def remove_practice(
+    practice_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    delete_practice_plan(db, practice_id=practice_id, current_user=current_user)
+    db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.post("/practice-templates", response_model=PracticeTemplateRead, status_code=status.HTTP_201_CREATED)

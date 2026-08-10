@@ -45,6 +45,13 @@ class TeamMemberStatus(str, Enum):
     approved = "approved"
 
 
+class AthleteInvitationStatus(str, Enum):
+    pending = "pending"
+    accepted = "accepted"
+    declined = "declined"
+    revoked = "revoked"
+
+
 class TeamMember(Base):
     __tablename__ = "team_members"
     __table_args__ = (UniqueConstraint("team_id", "user_id", name="uq_team_user"),)
@@ -61,3 +68,40 @@ class TeamMember(Base):
 
     team = relationship("Team", back_populates="memberships")
     user = relationship("User", back_populates="memberships")
+
+
+class AthleteParentInvitation(Base):
+    __tablename__ = "athlete_parent_invitations"
+    __table_args__ = (
+        UniqueConstraint(
+            "team_id",
+            "athlete_user_id",
+            "parent_email",
+            name="uq_athlete_parent_invitation",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    team_id: Mapped[int] = mapped_column(ForeignKey("teams.id"), nullable=False, index=True)
+    athlete_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    parent_email: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    relationship_label: Mapped[str] = mapped_column(String(60), default="parent", nullable=False)
+    status: Mapped[AthleteInvitationStatus] = mapped_column(
+        SqlEnum(AthleteInvitationStatus),
+        default=AthleteInvitationStatus.pending,
+        nullable=False,
+        index=True,
+    )
+    invited_by_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    accepted_by_user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"))
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    accepted_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+
+    team = relationship("Team", foreign_keys=[team_id])
+    athlete_user = relationship("User", foreign_keys=[athlete_user_id])
+    invited_by_user = relationship("User", foreign_keys=[invited_by_user_id])
+    accepted_by_user = relationship("User", foreign_keys=[accepted_by_user_id])

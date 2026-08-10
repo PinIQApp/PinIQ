@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/app_state.dart';
+import '../../models/athlete_invitation_model.dart';
 import '../../models/team_member_model.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
@@ -32,13 +33,20 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
     final appState = context.watch<AppState>();
     final team = appState.activeTeam;
     final members = team?.members ?? [];
-    final pendingMembers = members.where((member) => member.status == 'pending').toList();
-    final approvedMembers = members.where((member) => member.status == 'approved').toList();
-    final visibleApproved = approvedMembers.where(_matchesFilter).where(_matchesSearch).toList();
-    final visiblePending = pendingMembers.where(_matchesFilter).where(_matchesSearch).toList();
-    final athleteCount = approvedMembers.where((member) => !member.isStaff).length;
+    final athleteInvitations = appState.teamAthleteInvitations;
+    final pendingMembers =
+        members.where((member) => member.status == 'pending').toList();
+    final approvedMembers =
+        members.where((member) => member.status == 'approved').toList();
+    final visibleApproved =
+        approvedMembers.where(_matchesFilter).where(_matchesSearch).toList();
+    final visiblePending =
+        pendingMembers.where(_matchesFilter).where(_matchesSearch).toList();
+    final athleteCount =
+        approvedMembers.where((member) => !member.isStaff).length;
     final staffCount = approvedMembers.where((member) => member.isStaff).length;
-    final missingPhoneCount = approvedMembers.where((member) => !member.hasLikelyValidPhone).length;
+    final missingPhoneCount =
+        approvedMembers.where((member) => !member.hasLikelyValidPhone).length;
     final searchQuery = _searchController.text.trim();
     final width = MediaQuery.of(context).size.width;
     final isWide = width >= 980;
@@ -61,7 +69,7 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
             pendingCount: pendingMembers.length,
             missingPhoneCount: missingPhoneCount,
             canManageMembers: appState.canManageMembers,
-            onAddAthlete: () => _showInviteDialog(context, team?.joinCode ?? '--'),
+            onAddAthlete: () => _showInviteDialog(context),
           ),
           const SizedBox(height: AppSpacing.md),
           if (isWide)
@@ -74,9 +82,10 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
                     searchController: _searchController,
                     selectedFilter: _selectedFilter,
                     onSearchChanged: (_) => setState(() {}),
-                    onFilterSelected: (filter) => setState(() => _selectedFilter = filter),
+                    onFilterSelected: (filter) =>
+                        setState(() => _selectedFilter = filter),
                     showAddAthlete: appState.canManageMembers,
-                    onAddAthlete: () => _showInviteDialog(context, team?.joinCode ?? '--'),
+                    onAddAthlete: () => _showInviteDialog(context),
                     labelForFilter: _labelForFilter,
                   ),
                 ),
@@ -85,7 +94,8 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
                   width: 280,
                   child: Column(
                     children: [
-                      _TeamSummaryChip(label: 'Athletes', value: '$athleteCount'),
+                      _TeamSummaryChip(
+                          label: 'Athletes', value: '$athleteCount'),
                       const SizedBox(height: AppSpacing.sm),
                       _TeamSummaryChip(label: 'Staff', value: '$staffCount'),
                       const SizedBox(height: AppSpacing.sm),
@@ -110,17 +120,22 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
               searchController: _searchController,
               selectedFilter: _selectedFilter,
               onSearchChanged: (_) => setState(() {}),
-              onFilterSelected: (filter) => setState(() => _selectedFilter = filter),
+              onFilterSelected: (filter) =>
+                  setState(() => _selectedFilter = filter),
               showAddAthlete: appState.canManageMembers,
-              onAddAthlete: () => _showInviteDialog(context, team?.joinCode ?? '--'),
+              onAddAthlete: () => _showInviteDialog(context),
               labelForFilter: _labelForFilter,
             ),
             const SizedBox(height: AppSpacing.md),
             Row(
               children: [
-                Expanded(child: _TeamSummaryChip(label: 'Athletes', value: '$athleteCount')),
+                Expanded(
+                    child: _TeamSummaryChip(
+                        label: 'Athletes', value: '$athleteCount')),
                 const SizedBox(width: AppSpacing.sm),
-                Expanded(child: _TeamSummaryChip(label: 'Staff', value: '$staffCount')),
+                Expanded(
+                    child:
+                        _TeamSummaryChip(label: 'Staff', value: '$staffCount')),
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: _TeamSummaryChip(
@@ -158,13 +173,25 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
             currentFilter: _labelForFilter(_selectedFilter),
           ),
           const SizedBox(height: AppSpacing.xl),
+          if (appState.canManageMembers && athleteInvitations.isNotEmpty) ...[
+            const SectionHeader(title: 'Parent invitations'),
+            const SizedBox(height: AppSpacing.md),
+            ...athleteInvitations.map(
+              (invitation) => Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: _AthleteInvitationTile(invitation: invitation),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+          ],
           if (_selectedFilter == 'pending' || visiblePending.isNotEmpty) ...[
             const SectionHeader(title: 'Pending approvals'),
             const SizedBox(height: AppSpacing.md),
             if (visiblePending.isEmpty)
               const EmptyStateCard(
                 title: 'No pending requests',
-                message: 'New athlete, parent, and assistant coach join requests will appear here.',
+                message:
+                    'New athlete, parent, and assistant coach join requests will appear here.',
                 icon: Icons.hourglass_empty_rounded,
               )
             else
@@ -179,7 +206,8 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
           if (visibleApproved.isEmpty)
             const EmptyStateCard(
               title: 'No athletes added',
-              message: 'Approved athletes and staff will appear here once the roster is built.',
+              message:
+                  'Approved athletes and staff will appear here once the roster is built.',
               icon: Icons.groups_2_outlined,
             )
           else
@@ -227,18 +255,252 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
     }
   }
 
-  Future<void> _showInviteDialog(BuildContext context, String joinCode) {
-    return showDialog<void>(
+  Future<void> _showInviteDialog(BuildContext context) async {
+    final invitation = await showDialog<AthleteInvitationModel>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add athlete'),
+      builder: (context) => const _AddAthleteDialog(),
+    );
+    if (!context.mounted || invitation == null) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
         content: Text(
-          'Share join code $joinCode with the athlete or parent. Their request will appear here for staff approval.',
+          '${invitation.athleteFullName} was added. The parent invitation was sent to ${invitation.parentEmail}.',
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
+      ),
+    );
+  }
+}
+
+class _AddAthleteDialog extends StatefulWidget {
+  const _AddAthleteDialog();
+
+  @override
+  State<_AddAthleteDialog> createState() => _AddAthleteDialogState();
+}
+
+class _AddAthleteDialogState extends State<_AddAthleteDialog> {
+  final _athleteName = TextEditingController();
+  final _athleteEmail = TextEditingController();
+  final _parentEmail = TextEditingController();
+  final _phone = TextEditingController();
+  final _hometown = TextEditingController();
+  final _graduationYear = TextEditingController();
+  final _weightClass = TextEditingController();
+  final _relationship = TextEditingController(text: 'parent');
+  String? _error;
+
+  @override
+  void dispose() {
+    _athleteName.dispose();
+    _athleteEmail.dispose();
+    _parentEmail.dispose();
+    _phone.dispose();
+    _hometown.dispose();
+    _graduationYear.dispose();
+    _weightClass.dispose();
+    _relationship.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isBusy = context.watch<AppState>().isBusy;
+    return AlertDialog(
+      title: const Text('Add athlete and invite parent'),
+      content: SizedBox(
+        width: 560,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'The athlete is added to the roster now. The parent receives management access only after signing in with the invited email and accepting.',
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              TextField(
+                controller: _athleteName,
+                autofocus: true,
+                decoration:
+                    const InputDecoration(labelText: 'Athlete full name *'),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              TextField(
+                controller: _athleteEmail,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(labelText: 'Athlete email *'),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              TextField(
+                controller: _parentEmail,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(labelText: 'Parent email *'),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _relationship,
+                      decoration:
+                          const InputDecoration(labelText: 'Relationship'),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: TextField(
+                      controller: _phone,
+                      keyboardType: TextInputType.phone,
+                      decoration:
+                          const InputDecoration(labelText: 'Athlete phone'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _hometown,
+                      decoration: const InputDecoration(labelText: 'Hometown'),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: TextField(
+                      controller: _graduationYear,
+                      keyboardType: TextInputType.number,
+                      decoration:
+                          const InputDecoration(labelText: 'Graduation year'),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: TextField(
+                      controller: _weightClass,
+                      decoration:
+                          const InputDecoration(labelText: 'Weight class'),
+                    ),
+                  ),
+                ],
+              ),
+              if (_error != null) ...[
+                const SizedBox(height: AppSpacing.md),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    _error!,
+                    style: const TextStyle(color: Colors.redAccent),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: isBusy ? null : () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton.icon(
+          onPressed: isBusy ? null : _submit,
+          icon: const Icon(Icons.send_rounded),
+          label: Text(isBusy ? 'Sending...' : 'Add and invite'),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _submit() async {
+    final graduationText = _graduationYear.text.trim();
+    final graduationYear =
+        graduationText.isEmpty ? null : int.tryParse(graduationText);
+    if (_athleteName.text.trim().length < 2 ||
+        !_looksLikeEmail(_athleteEmail.text) ||
+        !_looksLikeEmail(_parentEmail.text)) {
+      setState(() => _error =
+          'Enter the athlete name and valid athlete and parent emails.');
+      return;
+    }
+    if (graduationText.isNotEmpty && graduationYear == null) {
+      setState(() => _error = 'Graduation year must be a number.');
+      return;
+    }
+    try {
+      setState(() => _error = null);
+      final invitation = await context.read<AppState>().inviteAthleteParent(
+            athleteFullName: _athleteName.text.trim(),
+            athleteEmail: _athleteEmail.text.trim(),
+            parentEmail: _parentEmail.text.trim(),
+            relationshipLabel: _relationship.text.trim().isEmpty
+                ? 'parent'
+                : _relationship.text.trim(),
+            phone: _nullable(_phone.text),
+            hometown: _nullable(_hometown.text),
+            graduationYear: graduationYear,
+            weightClass: _nullable(_weightClass.text),
+          );
+      if (mounted) Navigator.of(context).pop(invitation);
+    } catch (error) {
+      if (mounted) setState(() => _error = error.toString());
+    }
+  }
+
+  bool _looksLikeEmail(String value) {
+    final trimmed = value.trim();
+    return trimmed.contains('@') && trimmed.contains('.');
+  }
+
+  String? _nullable(String value) {
+    final trimmed = value.trim();
+    return trimmed.isEmpty ? null : trimmed;
+  }
+}
+
+class _AthleteInvitationTile extends StatelessWidget {
+  const _AthleteInvitationTile({required this.invitation});
+
+  final AthleteInvitationModel invitation;
+
+  @override
+  Widget build(BuildContext context) {
+    final isAccepted = invitation.status == 'accepted';
+    final color = isAccepted
+        ? AppColors.success
+        : invitation.status == 'pending'
+            ? AppColors.warning
+            : AppColors.textSecondary;
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.58),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            backgroundColor: color.withValues(alpha: 0.16),
+            child: Icon(Icons.family_restroom_rounded, color: color),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(invitation.athleteFullName,
+                    style: AppTextStyles.bodyStrong),
+                const SizedBox(height: AppSpacing.xxs),
+                Text(
+                  '${invitation.parentEmail} • ${invitation.relationshipLabel}',
+                  style: AppTextStyles.caption,
+                ),
+              ],
+            ),
+          ),
+          _StatusChip(
+            label: isAccepted ? 'Accepted' : invitation.status,
+            color: color,
           ),
         ],
       ),
@@ -289,7 +551,9 @@ class _TeamControlsCard extends StatelessWidget {
               Text('Roster controls', style: AppTextStyles.bodyStrong),
               const Spacer(),
               Text(
-                selectedFilter == 'all' ? 'Showing all' : labelForFilter(selectedFilter),
+                selectedFilter == 'all'
+                    ? 'Showing all'
+                    : labelForFilter(selectedFilter),
                 style: AppTextStyles.caption,
               ),
             ],
@@ -308,7 +572,12 @@ class _TeamControlsCard extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                for (final filter in const ['all', 'athletes', 'staff', 'pending'])
+                for (final filter in const [
+                  'all',
+                  'athletes',
+                  'staff',
+                  'pending'
+                ])
                   Padding(
                     padding: const EdgeInsets.only(right: AppSpacing.xs),
                     child: ChoiceChip(
@@ -392,7 +661,9 @@ class _TeamCommandDeck extends StatelessWidget {
                 label: 'Missing phones',
                 value: '$missingPhoneCount',
                 note: 'follow-up needed',
-                color: missingPhoneCount > 0 ? AppColors.danger : AppColors.success,
+                color: missingPhoneCount > 0
+                    ? AppColors.danger
+                    : AppColors.success,
               ),
             ],
           );
@@ -562,11 +833,14 @@ class _MemberTile extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Expanded(child: Text(member.user.fullName, style: AppTextStyles.bodyStrong)),
+                    Expanded(
+                        child: Text(member.user.fullName,
+                            style: AppTextStyles.bodyStrong)),
                     if (!member.isStaff)
                       Text(
                         'Athlete',
-                        style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+                        style: AppTextStyles.caption
+                            .copyWith(color: AppColors.textSecondary),
                       ),
                   ],
                 ),
@@ -580,18 +854,25 @@ class _MemberTile extends StatelessWidget {
                     _StatusChip(label: member.roleLabel, color: accent),
                     _StatusChip(
                       label: member.status == 'approved' ? 'Active' : 'Pending',
-                      color: member.status == 'approved' ? AppColors.success : AppColors.warning,
+                      color: member.status == 'approved'
+                          ? AppColors.success
+                          : AppColors.warning,
                     ),
                     _StatusChip(
-                      label: member.hasLikelyValidPhone ? 'Phone ready' : 'Phone missing',
-                      color: member.hasLikelyValidPhone ? AppColors.success : AppColors.warning,
+                      label: member.hasLikelyValidPhone
+                          ? 'Phone ready'
+                          : 'Phone missing',
+                      color: member.hasLikelyValidPhone
+                          ? AppColors.success
+                          : AppColors.warning,
                     ),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   _memberNote(member),
-                  style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+                  style: AppTextStyles.caption
+                      .copyWith(color: AppColors.textSecondary),
                 ),
               ],
             ),
@@ -599,7 +880,8 @@ class _MemberTile extends StatelessWidget {
           if (appState.canManageMembers)
             PopupMenuButton<String>(
               color: AppColors.surfaceElevated,
-              icon: const Icon(Icons.more_horiz_rounded, color: AppColors.textSecondary),
+              icon: const Icon(Icons.more_horiz_rounded,
+                  color: AppColors.textSecondary),
               onSelected: (value) {
                 if (value == 'approve') {
                   context.read<AppState>().approveMember(member.id);
@@ -652,7 +934,9 @@ class _TeamSummaryChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = highlight ? Theme.of(context).colorScheme.primary : AppColors.textSecondary;
+    final accent = highlight
+        ? Theme.of(context).colorScheme.primary
+        : AppColors.textSecondary;
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
@@ -720,7 +1004,8 @@ class _RosterInsightBand extends StatelessWidget {
           _RosterInsight(
             title: 'Roster balance',
             value: '$athleteCount athletes / $staffCount staff',
-            note: 'Keep staff visibility lean and athlete records clean enough to scan in seconds.',
+            note:
+                'Keep staff visibility lean and athlete records clean enough to scan in seconds.',
             color: const Color(0xFF38BDF8),
           ),
           _RosterInsight(
@@ -734,7 +1019,8 @@ class _RosterInsightBand extends StatelessWidget {
           _RosterInsight(
             title: 'Current view',
             value: currentFilter,
-            note: 'Search and filters should make it easy to audit the exact slice of the roster you need.',
+            note:
+                'Search and filters should make it easy to audit the exact slice of the roster you need.',
             color: Theme.of(context).colorScheme.primary,
           ),
         ];
@@ -749,7 +1035,8 @@ class _RosterInsightBand extends StatelessWidget {
             childAspectRatio: columns == 1 ? 2.6 : 1.5,
           ),
           itemCount: cards.length,
-          itemBuilder: (context, index) => _RosterInsightCard(item: cards[index]),
+          itemBuilder: (context, index) =>
+              _RosterInsightCard(item: cards[index]),
         );
       },
     );
@@ -799,7 +1086,8 @@ class _RosterOpsRow extends StatelessWidget {
       _RosterOpsCard(
         title: 'Structure',
         value: '$athleteCount athletes / $staffCount staff',
-        note: 'Keep staff access lean and athlete records easy to scan at a glance.',
+        note:
+            'Keep staff access lean and athlete records easy to scan at a glance.',
         color: const Color(0xFF38BDF8),
         icon: Icons.groups_2_rounded,
       ),
@@ -813,7 +1101,8 @@ class _RosterOpsRow extends StatelessWidget {
             children: [
               for (var i = 0; i < cards.length; i++) ...[
                 cards[i],
-                if (i != cards.length - 1) const SizedBox(height: AppSpacing.md),
+                if (i != cards.length - 1)
+                  const SizedBox(height: AppSpacing.md),
               ],
             ],
           );
@@ -878,7 +1167,9 @@ class _RosterOpsCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.md),
           Text(title, style: AppTextStyles.bodyStrong),
           const SizedBox(height: AppSpacing.xs),
-          Text(note, style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary)),
+          Text(note,
+              style: AppTextStyles.caption
+                  .copyWith(color: AppColors.textSecondary)),
         ],
       ),
     );
@@ -917,7 +1208,8 @@ class _RosterInsightCard extends StatelessWidget {
         children: [
           Text(item.title, style: AppTextStyles.caption),
           const SizedBox(height: AppSpacing.sm),
-          Text(item.value, style: AppTextStyles.cardTitle.copyWith(color: item.color)),
+          Text(item.value,
+              style: AppTextStyles.cardTitle.copyWith(color: item.color)),
           const SizedBox(height: AppSpacing.sm),
           Text(item.note, style: AppTextStyles.body),
         ],

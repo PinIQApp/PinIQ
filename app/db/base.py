@@ -33,7 +33,7 @@ from app.models.store import (
     Vendor,
 )
 from app.models.stats import AthleteStatSnapshot, Match, MatchStats, StatAuditLog, TeamStatSnapshot
-from app.models.team import Team, TeamMember
+from app.models.team import AthleteParentInvitation, Team, TeamMember
 from app.models.tournament import (
     Bracket,
     BracketMatch,
@@ -74,6 +74,7 @@ __all__ = [
     "AuthRateLimitEvent",
     "Team",
     "TeamMember",
+    "AthleteParentInvitation",
     "Tournament",
     "TournamentDivision",
     "TournamentTeam",

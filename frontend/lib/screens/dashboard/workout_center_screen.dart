@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../../core/app_state.dart';
+import '../../models/team_workout_model.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_text_styles.dart';
 import '../../widgets/subpage_header.dart';
 import 'stance_motion_workout_screen.dart';
+
+final bool _showWorkoutVisuals = false;
+final bool _showPresetWorkoutPanels = false;
+final bool _showPresetWorkoutLibrary = false;
 
 class WorkoutCenterScreen extends StatefulWidget {
   const WorkoutCenterScreen({super.key});
@@ -19,7 +26,15 @@ class _WorkoutCenterScreenState extends State<WorkoutCenterScreen> {
   String _reflection = 'good';
 
   @override
+  void initState() {
+    super.initState();
+    final appState = context.read<AppState>();
+    Future.microtask(appState.refreshTeamWorkouts);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
     final workouts = _workouts
         .where((workout) => _filter == 'all' || workout.category == _filter)
         .toList();
@@ -43,63 +58,78 @@ class _WorkoutCenterScreenState extends State<WorkoutCenterScreen> {
             const SizedBox(height: AppSpacing.md),
             const _WorkoutHero(),
             const SizedBox(height: AppSpacing.lg),
-            _TodayPlanPanel(onOpenTimer: _openStanceTimer),
-            const SizedBox(height: AppSpacing.md),
-            const _WeeklyPlanPanel(),
-            const SizedBox(height: AppSpacing.lg),
-            _WorkoutFilters(
-              selected: _filter,
-              onSelected: (value) => setState(() {
-                _filter = value;
-                _selectedIndex = 0;
-              }),
+            _ManagedWorkoutSchedule(
+              workouts: appState.teamWorkouts,
+              canManage: appState.canManageMembers,
+              isBusy: appState.isBusy,
+              onAdd: () => _showWorkoutEditor(),
+              onEdit: _showWorkoutEditor,
+              onDelete: _confirmDeleteWorkout,
             ),
-            const SizedBox(height: AppSpacing.lg),
-            if (isWide)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 4,
-                    child: _WorkoutList(
-                      workouts: workouts,
-                      selectedIndex: _selectedIndex,
-                      onSelected: (index) =>
-                          setState(() => _selectedIndex = index),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.lg),
-                  Expanded(
-                    flex: 5,
-                    child: selected == null
-                        ? const _EmptyWorkoutPanel()
-                        : _WorkoutDetail(
-                            workout: selected,
-                            onOpenTimer: _openWorkoutTimer,
-                            reflection: _reflection,
-                            onReflectionChanged: (value) =>
-                                setState(() => _reflection = value),
-                          ),
-                  ),
-                ],
-              )
-            else ...[
-              _WorkoutList(
-                workouts: workouts,
-                selectedIndex: _selectedIndex,
-                onSelected: (index) => setState(() => _selectedIndex = index),
+            if (_showPresetWorkoutPanels) ...[
+              const SizedBox(height: AppSpacing.md),
+              _TodayPlanPanel(onOpenTimer: _openStanceTimer),
+              const SizedBox(height: AppSpacing.md),
+              const _WeeklyPlanPanel(),
+              const SizedBox(height: AppSpacing.md),
+              const _LiftingSchedulePanel(),
+            ],
+            if (_showPresetWorkoutLibrary) ...[
+              const SizedBox(height: AppSpacing.lg),
+              _WorkoutFilters(
+                selected: _filter,
+                onSelected: (value) => setState(() {
+                  _filter = value;
+                  _selectedIndex = 0;
+                }),
               ),
               const SizedBox(height: AppSpacing.lg),
-              if (selected == null)
-                const _EmptyWorkoutPanel()
-              else
-                _WorkoutDetail(
-                  workout: selected,
-                  onOpenTimer: _openWorkoutTimer,
-                  reflection: _reflection,
-                  onReflectionChanged: (value) =>
-                      setState(() => _reflection = value),
+              if (isWide)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 4,
+                      child: _WorkoutList(
+                        workouts: workouts,
+                        selectedIndex: _selectedIndex,
+                        onSelected: (index) =>
+                            setState(() => _selectedIndex = index),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.lg),
+                    Expanded(
+                      flex: 5,
+                      child: selected == null
+                          ? const _EmptyWorkoutPanel()
+                          : _WorkoutDetail(
+                              workout: selected,
+                              onOpenTimer: _openWorkoutTimer,
+                              reflection: _reflection,
+                              onReflectionChanged: (value) =>
+                                  setState(() => _reflection = value),
+                            ),
+                    ),
+                  ],
+                )
+              else ...[
+                _WorkoutList(
+                  workouts: workouts,
+                  selectedIndex: _selectedIndex,
+                  onSelected: (index) => setState(() => _selectedIndex = index),
                 ),
+                const SizedBox(height: AppSpacing.lg),
+                if (selected == null)
+                  const _EmptyWorkoutPanel()
+                else
+                  _WorkoutDetail(
+                    workout: selected,
+                    onOpenTimer: _openWorkoutTimer,
+                    reflection: _reflection,
+                    onReflectionChanged: (value) =>
+                        setState(() => _reflection = value),
+                  ),
+              ],
             ],
           ],
         ),
@@ -136,6 +166,396 @@ class _WorkoutCenterScreenState extends State<WorkoutCenterScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _showWorkoutEditor([TeamWorkoutModel? workout]) async {
+    final appState = context.read<AppState>();
+    TeamWorkoutDetailModel? detail;
+    if (workout != null) {
+      try {
+        detail = await appState.loadTeamWorkout(workout.id);
+      } catch (error) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(error.toString())),
+          );
+        }
+        return;
+      }
+    }
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (_) => _WorkoutEditorDialog(workout: detail),
+    );
+  }
+
+  Future<void> _confirmDeleteWorkout(TeamWorkoutModel workout) async {
+    final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Delete workout?'),
+            content: Text(
+              '${workout.title} will be removed from the team schedule.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirmed || !mounted) return;
+    try {
+      await context.read<AppState>().deleteTeamWorkout(workout.id);
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error.toString())),
+        );
+      }
+    }
+  }
+}
+
+class _ManagedWorkoutSchedule extends StatelessWidget {
+  const _ManagedWorkoutSchedule({
+    required this.workouts,
+    required this.canManage,
+    required this.isBusy,
+    required this.onAdd,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  final List<TeamWorkoutModel> workouts;
+  final bool canManage;
+  final bool isBusy;
+  final VoidCallback onAdd;
+  final ValueChanged<TeamWorkoutModel> onEdit;
+  final ValueChanged<TeamWorkoutModel> onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.62),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.62)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.calendar_month_rounded,
+                  color: Color(0xFF60A5FA)),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  'Workout & lifting schedule',
+                  style: AppTextStyles.sectionTitle,
+                ),
+              ),
+              if (canManage)
+                ElevatedButton.icon(
+                  onPressed: isBusy ? null : onAdd,
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text('Add workout'),
+                ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            canManage
+                ? 'Add wrestling, lifting, or recovery sessions for the team.'
+                : 'Your coach controls this schedule. Check here for changes.',
+            style: AppTextStyles.body,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          if (workouts.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              decoration: BoxDecoration(
+                color: AppColors.surface.withValues(alpha: 0.36),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Text(
+                canManage
+                    ? 'No workouts scheduled. Add the first workout.'
+                    : 'No workouts are scheduled yet.',
+                style: AppTextStyles.body,
+              ),
+            )
+          else
+            Column(
+              children: [
+                for (var index = 0; index < workouts.length; index++) ...[
+                  _ManagedWorkoutCard(
+                    workout: workouts[index],
+                    canManage: canManage,
+                    onEdit: () => onEdit(workouts[index]),
+                    onDelete: () => onDelete(workouts[index]),
+                  ),
+                  if (index != workouts.length - 1)
+                    const SizedBox(height: AppSpacing.sm),
+                ],
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ManagedWorkoutCard extends StatelessWidget {
+  const _ManagedWorkoutCard({
+    required this.workout,
+    required this.canManage,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  final TeamWorkoutModel workout;
+  final bool canManage;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final date = workout.practiceDate;
+    final dateLabel = date == null
+        ? 'Date not set'
+        : '${date.month}/${date.day}/${date.year}';
+    final isLifting = workout.focus?.toLowerCase() == 'lifting';
+    final color = isLifting ? const Color(0xFF60A5FA) : AppColors.success;
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.46)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(
+              isLifting
+                  ? Icons.fitness_center_rounded
+                  : Icons.sports_martial_arts_rounded,
+              color: color,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(workout.title, style: AppTextStyles.bodyStrong),
+                const SizedBox(height: AppSpacing.xxs),
+                Text(
+                  '$dateLabel • ${workout.focus ?? 'Workout'} • ${workout.totalDurationMinutes} min',
+                  style: AppTextStyles.caption,
+                ),
+              ],
+            ),
+          ),
+          if (canManage)
+            PopupMenuButton<String>(
+              tooltip: 'Workout actions',
+              onSelected: (value) {
+                if (value == 'edit') onEdit();
+                if (value == 'delete') onDelete();
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 'edit', child: Text('Edit')),
+                PopupMenuItem(value: 'delete', child: Text('Delete')),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WorkoutEditorDialog extends StatefulWidget {
+  const _WorkoutEditorDialog({this.workout});
+
+  final TeamWorkoutDetailModel? workout;
+
+  @override
+  State<_WorkoutEditorDialog> createState() => _WorkoutEditorDialogState();
+}
+
+class _WorkoutEditorDialogState extends State<_WorkoutEditorDialog> {
+  late final TextEditingController _title;
+  late final TextEditingController _duration;
+  late final TextEditingController _description;
+  late String _type;
+  late DateTime _date;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    final workout = widget.workout;
+    _title = TextEditingController(text: workout?.title ?? '');
+    _duration = TextEditingController(
+      text: workout == null || workout.totalDurationMinutes == 0
+          ? '45'
+          : '${workout.totalDurationMinutes}',
+    );
+    _description = TextEditingController(text: workout?.description ?? '');
+    _type = const ['Wrestling', 'Lifting', 'Recovery'].contains(workout?.focus)
+        ? workout!.focus!
+        : 'Wrestling';
+    _date = workout?.practiceDate ?? DateTime.now();
+  }
+
+  @override
+  void dispose() {
+    _title.dispose();
+    _duration.dispose();
+    _description.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+    return AlertDialog(
+      title: Text(widget.workout == null ? 'Add workout' : 'Edit workout'),
+      content: SizedBox(
+        width: 520,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _title,
+                autofocus: true,
+                decoration: const InputDecoration(labelText: 'Workout name'),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              DropdownButtonFormField<String>(
+                initialValue: _type,
+                decoration: const InputDecoration(labelText: 'Type'),
+                items: const [
+                  DropdownMenuItem(
+                      value: 'Wrestling', child: Text('Wrestling')),
+                  DropdownMenuItem(value: 'Lifting', child: Text('Lifting')),
+                  DropdownMenuItem(value: 'Recovery', child: Text('Recovery')),
+                ],
+                onChanged: (value) {
+                  if (value != null) setState(() => _type = value);
+                },
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _pickDate,
+                      icon: const Icon(Icons.calendar_today_rounded),
+                      label: Text('${_date.month}/${_date.day}/${_date.year}'),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: TextField(
+                      controller: _duration,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: 'Minutes'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              TextField(
+                controller: _description,
+                minLines: 3,
+                maxLines: 5,
+                decoration: const InputDecoration(
+                  labelText: 'Simple instructions or focus',
+                ),
+              ),
+              if (_error != null) ...[
+                const SizedBox(height: AppSpacing.sm),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    _error!,
+                    style: const TextStyle(color: Colors.redAccent),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: appState.isBusy ? null : () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: appState.isBusy ? null : _save,
+          child: Text(appState.isBusy ? 'Saving...' : 'Save'),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _pickDate() async {
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: _date,
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 730)),
+    );
+    if (selected != null) setState(() => _date = selected);
+  }
+
+  Future<void> _save() async {
+    final duration = int.tryParse(_duration.text.trim());
+    if (_title.text.trim().isEmpty ||
+        duration == null ||
+        duration < 1 ||
+        duration > 240) {
+      setState(() => _error = 'Enter a workout name and 1-240 minutes.');
+      return;
+    }
+    try {
+      setState(() => _error = null);
+      await context.read<AppState>().saveTeamWorkout(
+            workoutId: widget.workout?.id,
+            title: _title.text.trim(),
+            workoutType: _type,
+            date: _date,
+            durationMinutes: duration,
+            description: _description.text.trim().isEmpty
+                ? null
+                : _description.text.trim(),
+          );
+      if (mounted) Navigator.of(context).pop();
+    } catch (error) {
+      if (mounted) setState(() => _error = error.toString());
+    }
   }
 }
 
@@ -430,6 +850,135 @@ class _WeekDayChip extends StatelessWidget {
   }
 }
 
+class _LiftingSchedulePanel extends StatelessWidget {
+  const _LiftingSchedulePanel();
+
+  @override
+  Widget build(BuildContext context) {
+    const days = [
+      (
+        'Monday',
+        'Lower body',
+        'Squat • split squat • hamstring • core',
+        '35 min'
+      ),
+      (
+        'Wednesday',
+        'Upper body',
+        'Press • pull-up • row • shoulder care',
+        '35 min'
+      ),
+      ('Friday', 'Full body', 'Hinge • push • pull • carry', '40 min'),
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.58),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.58)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.fitness_center_rounded,
+                  color: Color(0xFF60A5FA)),
+              const SizedBox(width: AppSpacing.sm),
+              Text('Lifting schedule', style: AppTextStyles.sectionTitle),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            'Three simple sessions. Use coach-approved weights, clean form, and no max attempts.',
+            style: AppTextStyles.body,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isWide = constraints.maxWidth >= 760;
+              final cards = [
+                for (final day in days)
+                  _LiftDayCard(
+                    day: day.$1,
+                    focus: day.$2,
+                    lifts: day.$3,
+                    duration: day.$4,
+                  ),
+              ];
+              if (isWide) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (var i = 0; i < cards.length; i++) ...[
+                      Expanded(child: cards[i]),
+                      if (i != cards.length - 1)
+                        const SizedBox(width: AppSpacing.sm),
+                    ],
+                  ],
+                );
+              }
+              return Column(
+                children: [
+                  for (var i = 0; i < cards.length; i++) ...[
+                    cards[i],
+                    if (i != cards.length - 1)
+                      const SizedBox(height: AppSpacing.sm),
+                  ],
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LiftDayCard extends StatelessWidget {
+  const _LiftDayCard({
+    required this.day,
+    required this.focus,
+    required this.lifts,
+    required this.duration,
+  });
+
+  final String day;
+  final String focus;
+  final String lifts;
+  final String duration;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 132),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.48),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.42)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(day, style: AppTextStyles.caption),
+              const Spacer(),
+              Text(duration, style: AppTextStyles.caption),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(focus, style: AppTextStyles.bodyStrong),
+          const SizedBox(height: AppSpacing.xs),
+          Text(lifts, style: AppTextStyles.caption),
+        ],
+      ),
+    );
+  }
+}
+
 class _WorkoutFilters extends StatelessWidget {
   const _WorkoutFilters({
     required this.selected,
@@ -698,7 +1247,7 @@ class _HowToPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _HowToVisuals(workout: workout),
+          if (_showWorkoutVisuals) _HowToVisuals(workout: workout),
           Padding(
             padding: const EdgeInsets.all(AppSpacing.md),
             child: Column(
@@ -706,7 +1255,7 @@ class _HowToPanel extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.image_search_rounded,
+                    Icon(Icons.format_list_numbered_rounded,
                         color: workout.color, size: 20),
                     const SizedBox(width: AppSpacing.xs),
                     Expanded(
@@ -1862,6 +2411,50 @@ const _workouts = [
     timerInitialIntervalSeconds: 15,
     timerIntervalLabel: 'Time between takedowns',
     timerCueListLabel: 'Takedowns to work',
+  ),
+  _WorkoutPlan(
+    title: 'Full-body lift',
+    category: 'strength',
+    description:
+        'Simple strength session built around clean reps and wrestling-ready movement.',
+    minutes: 40,
+    level: 'Coach supervised',
+    equipment: 'Weight room',
+    ageLabel: 'High school',
+    imageAsset: '',
+    imageAspectRatio: 1,
+    howToTitle: 'Keep the lift simple',
+    howToTips: [
+      'Use a weight the athlete can control for every rep.',
+      'Stop each set before form slows down or breaks.',
+      'Record the completed sets instead of testing a maximum.',
+    ],
+    icon: Icons.fitness_center_rounded,
+    color: Color(0xFF60A5FA),
+    blocks: [
+      _WorkoutBlock(
+          time: '8m',
+          title: 'Warm up',
+          detail: 'Movement prep, light jumps, and two easy ramp-up sets.'),
+      _WorkoutBlock(
+          time: '24m',
+          title: 'Main lifts',
+          detail: 'Hinge, push, and pull for three controlled working sets.'),
+      _WorkoutBlock(
+          time: '8m',
+          title: 'Finish',
+          detail: 'Carries, trunk work, and an easy cooldown.'),
+    ],
+    cues: [
+      'Brace before each rep.',
+      'Move with control through the full range.',
+      'Leave one or two clean reps in reserve.',
+    ],
+    safetyNotes: [
+      'A coach should approve exercise choice and weight.',
+      'No one-rep max attempts.',
+      'Stop for sharp pain, dizziness, or loss of form.',
+    ],
   ),
   _WorkoutPlan(
     title: 'Referee down position',

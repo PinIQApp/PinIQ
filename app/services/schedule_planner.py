@@ -207,6 +207,14 @@ def update_practice_plan(db: Session, *, practice_id: int, payload: PracticePlan
     return load_practice(db, practice.id, current_user=current_user)
 
 
+def delete_practice_plan(db: Session, *, practice_id: int, current_user: User) -> None:
+    practice = load_practice(db, practice_id, current_user=current_user, require_manage=True)
+    if practice.event is not None:
+        db.delete(practice.event)
+    db.delete(practice)
+    db.flush()
+
+
 def load_practice(
     db: Session,
     practice_id: int,
