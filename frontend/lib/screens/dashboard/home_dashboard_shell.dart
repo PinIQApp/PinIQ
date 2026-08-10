@@ -27,6 +27,7 @@ import '../dashboard/tournament_center_screen.dart';
 import '../dashboard/workout_center_screen.dart';
 import '../settings/coach_settings_screen.dart';
 import '../team/team_members_screen.dart';
+import '../team/parent_athlete_management_screen.dart';
 import '../weights/athlete_weight_log_screen.dart';
 import '../weights/athlete_weight_plan_screen.dart';
 import '../weights/parent_weight_view_screen.dart';
@@ -61,7 +62,9 @@ class _HomeDashboardShellState extends State<HomeDashboardShell> {
         label: 'Team',
         icon: Icons.groups_2_outlined,
         activeIcon: Icons.groups_2_rounded,
-        body: const TeamMembersScreen(),
+        body: appState.isParent
+            ? const ParentAthleteManagementScreen()
+            : const TeamMembersScreen(),
       ),
       _AppTab(
         label: 'Chat',

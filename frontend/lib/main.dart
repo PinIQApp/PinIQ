@@ -8,6 +8,7 @@ import 'screens/auth/register_screen.dart';
 import 'screens/dashboard/home_dashboard_shell.dart';
 import 'screens/splash_screen.dart';
 import 'screens/team/join_team_screen.dart';
+import 'screens/team/athlete_invitation_screen.dart';
 import 'screens/team/pending_approval_screen.dart';
 import 'screens/team/team_setup_screen.dart';
 
@@ -121,6 +122,9 @@ class _WrestlingOsAppState extends State<WrestlingOsApp> {
                     onLoginTap: () => setState(() => showRegister = false))
                 : LoginScreen(
                     onRegisterTap: () => setState(() => showRegister = true));
+          }
+          if (appState.needsAthleteInvitationDecision) {
+            return const AthleteInvitationScreen();
           }
           if (appState.needsTeamSetup) return const TeamSetupScreen();
           if (appState.needsJoinTeam) return const JoinTeamScreen();

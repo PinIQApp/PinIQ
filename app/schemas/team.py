@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
-from app.models.team import TeamMemberStatus
+from app.models.team import AthleteInvitationStatus, TeamMemberStatus
 from app.models.user import UserRole
 from app.schemas.user import UserRead
+from app.services.phone_numbers import phone_number_field_validator
 
 
 class BrandingUpdate(BaseModel):
@@ -108,3 +109,44 @@ class AthleteDetail(AthleteRosterProfile):
     bio: str | None
     primary_team_id: int | None
     joined_team_at: datetime
+
+
+class AthleteInvitationCreate(BaseModel):
+    athlete_full_name: str = Field(min_length=2, max_length=120)
+    athlete_email: EmailStr
+    parent_email: EmailStr
+    relationship_label: str = Field(default="parent", min_length=2, max_length=60)
+    phone: str | None = None
+    hometown: str | None = Field(default=None, max_length=120)
+    graduation_year: int | None = Field(default=None, ge=2000, le=2100)
+    weight_class: str | None = Field(default=None, max_length=30)
+
+    _normalize_phone = phone_number_field_validator("phone")
+
+
+class AthleteInvitationRead(BaseModel):
+    id: int
+    team_id: int
+    team_name: str
+    athlete_user_id: int
+    athlete_full_name: str
+    athlete_email: EmailStr
+    parent_email: EmailStr
+    relationship_label: str
+    status: AthleteInvitationStatus
+    invited_by_user_id: int
+    expires_at: datetime
+    accepted_at: datetime | None
+    created_at: datetime
+
+
+class AthleteManagedUpdate(BaseModel):
+    full_name: str = Field(min_length=2, max_length=120)
+    phone: str | None = None
+    profile_image_url: str | None = Field(default=None, max_length=500)
+    hometown: str | None = Field(default=None, max_length=120)
+    graduation_year: int | None = Field(default=None, ge=2000, le=2100)
+    weight_class: str | None = Field(default=None, max_length=30)
+    bio: str | None = Field(default=None, max_length=500)
+
+    _normalize_phone = phone_number_field_validator("phone")

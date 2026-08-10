@@ -17,6 +17,7 @@ from app.db.base import *
 from app.db.session import Base, SessionLocal, engine
 from app.routers.ai_replay import router as ai_replay_router
 from app.routers.auth import router as auth_router
+from app.routers.athlete_invitations import router as athlete_invitations_router
 from app.routers.branding import router as branding_router
 from app.routers.merch import router as merch_router
 from app.routers.messages import router as messages_router
@@ -143,6 +144,7 @@ def ready_health():
 
 
 app.include_router(auth_router, prefix=settings.api_v1_str)
+app.include_router(athlete_invitations_router, prefix=settings.api_v1_str)
 app.include_router(users_router, prefix=settings.api_v1_str)
 app.include_router(teams_router, prefix=settings.api_v1_str)
 app.include_router(roster_router, prefix=settings.api_v1_str)

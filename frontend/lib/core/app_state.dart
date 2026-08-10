@@ -5,9 +5,11 @@ import 'package:flutter/material.dart';
 
 import '../models/messaging_models.dart';
 import '../models/ai_replay_models.dart';
+import '../models/athlete_invitation_model.dart';
 import '../models/nutrition_models.dart';
 import '../models/operator_models.dart';
 import '../models/team_model.dart';
+import '../models/team_workout_model.dart';
 import '../models/user_profile.dart';
 import '../models/watch_models.dart';
 import '../models/weight_models.dart';
@@ -29,10 +31,14 @@ class AppState extends ChangeNotifier {
   String? token;
   UserProfile? user;
   TeamModel? activeTeam;
+  List<TeamWorkoutModel> teamWorkouts = [];
   List<AnnouncementModel> announcements = [];
   TeamTextAlertReadinessModel? textAlertReadiness;
   List<MessageThreadSummaryModel> threads = [];
   List<ParentLinkModel> parentLinks = [];
+  List<AthleteInvitationModel> pendingAthleteInvitations = [];
+  List<AthleteInvitationModel> teamAthleteInvitations = [];
+  ManagedAthleteProfileModel? managedAthleteProfile;
   List<SafetyAlertModel> safetyAlerts = [];
   List<WeightLogModel> weightHistory = [];
   WeightPlanModel? athleteWeightPlan;
@@ -85,6 +91,9 @@ class AppState extends ChangeNotifier {
         user = await api.me(token!);
         final teams = await api.myTeams(token!);
         activeTeam = teams.isNotEmpty ? teams.first : null;
+        pendingAthleteInvitations = user?.role == 'parent'
+            ? await api.myAthleteInvitations(token: token!)
+            : [];
         if (user != null && activeTeam != null) {
           await refreshMessagingData();
           await refreshWeightData();
@@ -94,10 +103,14 @@ class AppState extends ChangeNotifier {
         token = null;
         user = null;
         activeTeam = null;
+        teamWorkouts = [];
         announcements = [];
         textAlertReadiness = null;
         threads = [];
         parentLinks = [];
+        pendingAthleteInvitations = [];
+        teamAthleteInvitations = [];
+        managedAthleteProfile = null;
         safetyAlerts = [];
         weightHistory = [];
         athleteWeightPlan = null;
@@ -122,6 +135,9 @@ class AppState extends ChangeNotifier {
       user = await api.me(token!);
       final teams = await api.myTeams(token!);
       activeTeam = teams.isNotEmpty ? teams.first : null;
+      pendingAthleteInvitations = user?.role == 'parent'
+          ? await api.myAthleteInvitations(token: token!)
+          : [];
       if (user != null && activeTeam != null) {
         await refreshMessagingData();
         await refreshWeightData();
@@ -191,13 +207,179 @@ class AppState extends ChangeNotifier {
     if (token == null || activeTeam == null) return;
     activeTeam =
         await api.fetchTeamMembers(token: token!, teamId: activeTeam!.id);
-    if (canSendTeamTextAlerts) {
-      textAlertReadiness = await api.teamTextAlertReadiness(
-          token: token!, teamId: activeTeam!.id);
+    if (canManageMembers) {
+      teamAthleteInvitations = await api.teamAthleteInvitations(
+        token: token!,
+        teamId: activeTeam!.id,
+      );
     } else {
-      textAlertReadiness = null;
+      teamAthleteInvitations = [];
     }
+    await _refreshTextAlertReadiness();
     notifyListeners();
+  }
+
+  Future<void> refreshTeamWorkouts() async {
+    if (token == null || activeTeam == null) return;
+    teamWorkouts = await api.teamWorkouts(
+      token: token!,
+      teamId: activeTeam!.id,
+    );
+    notifyListeners();
+  }
+
+  Future<TeamWorkoutDetailModel> loadTeamWorkout(int workoutId) async {
+    if (token == null) throw Exception('Missing session');
+    return api.workoutDetail(token: token!, workoutId: workoutId);
+  }
+
+  Future<void> saveTeamWorkout({
+    int? workoutId,
+    required String title,
+    required String workoutType,
+    required DateTime date,
+    required int durationMinutes,
+    String? description,
+  }) async {
+    if (token == null || activeTeam == null) return;
+    isBusy = true;
+    notifyListeners();
+    final blockType = switch (workoutType) {
+      'Lifting' => 'conditioning',
+      'Recovery' => 'recovery',
+      _ => 'drilling',
+    };
+    final payload = <String, dynamic>{
+      if (workoutId == null) 'team_id': activeTeam!.id,
+      'title': title,
+      'description': description,
+      'focus': workoutType,
+      'practice_date': date.toIso8601String().split('T').first,
+      'blocks': [
+        {
+          'block_order': 1,
+          'block_type': blockType,
+          'title': workoutType,
+          'notes': description,
+          'duration_minutes': durationMinutes,
+        },
+      ],
+    };
+    try {
+      if (workoutId == null) {
+        await api.createWorkout(token: token!, payload: payload);
+      } else {
+        await api.updateWorkout(
+          token: token!,
+          workoutId: workoutId,
+          payload: payload,
+        );
+      }
+      await refreshTeamWorkouts();
+    } finally {
+      isBusy = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> deleteTeamWorkout(int workoutId) async {
+    if (token == null) return;
+    isBusy = true;
+    notifyListeners();
+    try {
+      await api.deleteWorkout(token: token!, workoutId: workoutId);
+      await refreshTeamWorkouts();
+    } finally {
+      isBusy = false;
+      notifyListeners();
+    }
+  }
+
+  Future<AthleteInvitationModel> inviteAthleteParent({
+    required String athleteFullName,
+    required String athleteEmail,
+    required String parentEmail,
+    required String relationshipLabel,
+    String? phone,
+    String? hometown,
+    int? graduationYear,
+    String? weightClass,
+  }) async {
+    if (token == null || activeTeam == null) {
+      throw Exception('Missing team session');
+    }
+    isBusy = true;
+    notifyListeners();
+    try {
+      final invitation = await api.inviteAthleteParent(
+        token: token!,
+        teamId: activeTeam!.id,
+        payload: {
+          'athlete_full_name': athleteFullName,
+          'athlete_email': athleteEmail,
+          'parent_email': parentEmail,
+          'relationship_label': relationshipLabel,
+          'phone': phone,
+          'hometown': hometown,
+          'graduation_year': graduationYear,
+          'weight_class': weightClass,
+        },
+      );
+      await refreshTeamMembers();
+      return invitation;
+    } finally {
+      isBusy = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> acceptAthleteInvitation(int invitationId) async {
+    if (token == null) return;
+    isBusy = true;
+    notifyListeners();
+    try {
+      final accepted = await api.acceptAthleteInvitation(
+        token: token!,
+        invitationId: invitationId,
+      );
+      pendingAthleteInvitations = [
+        for (final invitation in pendingAthleteInvitations)
+          if (invitation.id != invitationId) invitation,
+      ];
+      user = await api.me(token!);
+      final teams = await api.myTeams(token!);
+      activeTeam = teams.firstWhere(
+        (team) => team.id == accepted.teamId,
+        orElse: () => teams.first,
+      );
+      await refreshMessagingData();
+      await refreshWeightData();
+      if (linkedAthletes.isNotEmpty) {
+        await loadManagedAthleteProfile(linkedAthletes.first.athleteId);
+      }
+    } finally {
+      isBusy = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> declineAthleteInvitation(int invitationId) async {
+    if (token == null) return;
+    isBusy = true;
+    notifyListeners();
+    try {
+      await api.declineAthleteInvitation(
+        token: token!,
+        invitationId: invitationId,
+      );
+      pendingAthleteInvitations = [
+        for (final invitation in pendingAthleteInvitations)
+          if (invitation.id != invitationId) invitation,
+      ];
+    } finally {
+      isBusy = false;
+      notifyListeners();
+    }
   }
 
   Future<void> approveMember(int memberId) async {
@@ -211,10 +393,7 @@ class AppState extends ChangeNotifier {
         memberId: memberId,
         status: 'approved',
       );
-      if (canSendTeamTextAlerts) {
-        textAlertReadiness = await api.teamTextAlertReadiness(
-            token: token!, teamId: activeTeam!.id);
-      }
+      await _refreshTextAlertReadiness();
     } finally {
       isBusy = false;
       notifyListeners();
@@ -231,10 +410,7 @@ class AppState extends ChangeNotifier {
         teamId: activeTeam!.id,
         memberId: memberId,
       );
-      if (canSendTeamTextAlerts) {
-        textAlertReadiness = await api.teamTextAlertReadiness(
-            token: token!, teamId: activeTeam!.id);
-      }
+      await _refreshTextAlertReadiness();
     } finally {
       isBusy = false;
       notifyListeners();
@@ -267,10 +443,7 @@ class AppState extends ChangeNotifier {
         fullName: fullName,
         phone: phone,
       );
-      if (canSendTeamTextAlerts && activeTeam != null) {
-        textAlertReadiness = await api.teamTextAlertReadiness(
-            token: token!, teamId: activeTeam!.id);
-      }
+      await _refreshTextAlertReadiness();
     } finally {
       isBusy = false;
       notifyListeners();
@@ -334,10 +507,14 @@ class AppState extends ChangeNotifier {
     token = null;
     user = null;
     activeTeam = null;
+    teamWorkouts = [];
     announcements = [];
     textAlertReadiness = null;
     threads = [];
     parentLinks = [];
+    pendingAthleteInvitations = [];
+    teamAthleteInvitations = [];
+    managedAthleteProfile = null;
     safetyAlerts = [];
     weightHistory = [];
     athleteWeightPlan = null;
@@ -548,12 +725,7 @@ class AppState extends ChangeNotifier {
     if (token == null || user == null || activeTeam == null) return;
     announcements =
         await api.teamAnnouncements(token: token!, teamId: activeTeam!.id);
-    if (canSendTeamTextAlerts) {
-      textAlertReadiness = await api.teamTextAlertReadiness(
-          token: token!, teamId: activeTeam!.id);
-    } else {
-      textAlertReadiness = null;
-    }
+    await _refreshTextAlertReadiness();
     threads = await api.userThreads(token: token!, userId: user!.id);
     if (canManageMembers) {
       parentLinks =
@@ -571,13 +743,25 @@ class AppState extends ChangeNotifier {
     if (token == null || activeTeam == null) return;
     announcements =
         await api.teamAnnouncements(token: token!, teamId: activeTeam!.id);
-    if (canSendTeamTextAlerts) {
+    await _refreshTextAlertReadiness();
+    notifyListeners();
+  }
+
+  Future<void> _refreshTextAlertReadiness() async {
+    if (!canSendTeamTextAlerts || token == null || activeTeam == null) {
+      textAlertReadiness = null;
+      return;
+    }
+    try {
       textAlertReadiness = await api.teamTextAlertReadiness(
-          token: token!, teamId: activeTeam!.id);
-    } else {
+        token: token!,
+        teamId: activeTeam!.id,
+      );
+    } catch (_) {
+      // Roster work must remain available while an athlete is waiting for a
+      // parent link. The readiness endpoint intentionally rejects that state.
       textAlertReadiness = null;
     }
-    notifyListeners();
   }
 
   Future<void> refreshThreads() async {
@@ -612,6 +796,7 @@ class AppState extends ChangeNotifier {
       teamWeightDashboard = [];
       linkedAthletes = [];
       selectedLinkedAthlete = null;
+      managedAthleteProfile = null;
     } else if (isParent) {
       linkedAthletes = await api.fetchLinkedAthletes(token: token!);
       if (linkedAthletes.isEmpty) {
@@ -648,6 +833,7 @@ class AppState extends ChangeNotifier {
       athleteWeightPlan = null;
       linkedAthletes = [];
       selectedLinkedAthlete = null;
+      managedAthleteProfile = null;
     }
     notifyListeners();
   }
@@ -722,7 +908,67 @@ class AppState extends ChangeNotifier {
     athleteWeightPlan = bundle.latestPlan;
     weightHistory = bundle.recentLogs;
     weightAlerts = bundle.activeAlerts;
+    await loadManagedAthleteProfile(athleteId);
     notifyListeners();
+  }
+
+  Future<void> loadManagedAthleteProfile(int athleteId) async {
+    if (token == null) return;
+    final linked = linkedAthletes.where((item) => item.athleteId == athleteId);
+    if (linked.isEmpty) return;
+    final athlete = linked.first;
+    managedAthleteProfile = await api.managedAthleteProfile(
+      token: token!,
+      teamId: athlete.teamId,
+      athleteId: athlete.athleteId,
+    );
+    notifyListeners();
+  }
+
+  Future<void> updateManagedAthleteProfile({
+    required String fullName,
+    String? phone,
+    String? hometown,
+    int? graduationYear,
+    String? weightClass,
+    String? bio,
+  }) async {
+    if (token == null || selectedLinkedAthlete == null) return;
+    isBusy = true;
+    notifyListeners();
+    try {
+      final athlete = selectedLinkedAthlete!;
+      managedAthleteProfile = await api.updateManagedAthleteProfile(
+        token: token!,
+        teamId: athlete.teamId,
+        athleteId: athlete.athleteId,
+        payload: {
+          'full_name': fullName,
+          'phone': phone,
+          'hometown': hometown,
+          'graduation_year': graduationYear,
+          'weight_class': weightClass,
+          'bio': bio,
+        },
+      );
+      linkedAthletes = [
+        for (final item in linkedAthletes)
+          LinkedAthleteModel(
+            athleteId: item.athleteId,
+            athleteName: item.athleteId == athlete.athleteId
+                ? managedAthleteProfile!.fullName
+                : item.athleteName,
+            teamId: item.teamId,
+            relationshipLabel: item.relationshipLabel,
+          ),
+      ];
+      selectedLinkedAthlete = linkedAthletes.firstWhere(
+        (item) => item.athleteId == athlete.athleteId,
+      );
+    } finally {
+      isBusy = false;
+      notifyListeners();
+    }
   }
 
   Future<MessageThreadDetailModel> loadThread(int threadId) async {
@@ -862,6 +1108,10 @@ class AppState extends ChangeNotifier {
     if (user == null) return false;
     final nonStaffRoles = {'assistant_coach', 'athlete', 'parent'};
     return activeTeam == null && nonStaffRoles.contains(user!.role);
+  }
+
+  bool get needsAthleteInvitationDecision {
+    return isParent && pendingAthleteInvitations.isNotEmpty;
   }
 
   bool get canManageBranding {
