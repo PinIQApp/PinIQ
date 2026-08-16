@@ -4,8 +4,9 @@ class AthleteInvitationModel {
   final String teamName;
   final int athleteUserId;
   final String athleteFullName;
-  final String athleteEmail;
-  final String parentEmail;
+  final String? athleteEmail;
+  final String? parentEmail;
+  final String? parentPhone;
   final String relationshipLabel;
   final String status;
   final DateTime expiresAt;
@@ -20,6 +21,7 @@ class AthleteInvitationModel {
     required this.athleteFullName,
     required this.athleteEmail,
     required this.parentEmail,
+    required this.parentPhone,
     required this.relationshipLabel,
     required this.status,
     required this.expiresAt,
@@ -34,8 +36,9 @@ class AthleteInvitationModel {
       teamName: json['team_name'] as String,
       athleteUserId: json['athlete_user_id'] as int,
       athleteFullName: json['athlete_full_name'] as String,
-      athleteEmail: json['athlete_email'] as String,
-      parentEmail: json['parent_email'] as String,
+      athleteEmail: json['athlete_email'] as String?,
+      parentEmail: json['parent_email'] as String?,
+      parentPhone: json['parent_phone'] as String?,
       relationshipLabel: json['relationship_label'] as String,
       status: json['status'] as String,
       expiresAt: DateTime.parse(json['expires_at'] as String),
@@ -45,6 +48,8 @@ class AthleteInvitationModel {
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }
+
+  String get parentContact => parentPhone ?? parentEmail ?? 'No contact';
 }
 
 class ManagedAthleteProfileModel {

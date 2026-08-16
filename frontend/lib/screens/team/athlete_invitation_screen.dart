@@ -70,16 +70,14 @@ class _AthleteInvitationScreenState extends State<AthleteInvitationScreen> {
                           ),
                           const SizedBox(height: AppSpacing.lg),
                           _InvitationDetail(
-                            label: 'Athlete account',
-                            value: invitation.athleteEmail,
-                          ),
-                          _InvitationDetail(
                             label: 'Your relationship',
                             value: invitation.relationshipLabel,
                           ),
                           _InvitationDetail(
-                            label: 'Invited parent email',
-                            value: invitation.parentEmail,
+                            label: invitation.parentPhone == null
+                                ? 'Invited parent email'
+                                : 'Invited parent phone',
+                            value: invitation.parentContact,
                           ),
                           const SizedBox(height: AppSpacing.md),
                           const Text(

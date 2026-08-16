@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, model_validator
 
 from app.models.user import UserRole
 from app.services.phone_numbers import phone_number_field_validator
@@ -30,6 +30,12 @@ class RegisterRequest(BaseModel):
     bio: str | None = Field(default=None, max_length=500)
 
     _normalize_phone = phone_number_field_validator("phone")
+
+    @model_validator(mode="after")
+    def require_parent_phone(self):
+        if self.role == UserRole.parent and not self.phone:
+            raise ValueError("Phone number is required for parent accounts")
+        return self
 
 
 class RefreshTokenRequest(BaseModel):

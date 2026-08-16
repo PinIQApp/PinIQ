@@ -59,6 +59,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _submit() async {
+    if (_role == 'parent') {
+      final digits = _phone.text.replaceAll(RegExp(r'\D'), '');
+      if (digits.length != 10 &&
+          !(digits.length == 11 && digits.startsWith('1'))) {
+        setState(() => _error =
+            'Enter the phone number your coach used for the invitation.');
+        return;
+      }
+    }
     try {
       setState(() => _error = null);
       await context.read<AppState>().register(
@@ -145,8 +154,14 @@ class _RegisterPanel extends StatelessWidget {
                 const SizedBox(height: AppSpacing.sm),
                 TextFormField(
                   controller: state._phone,
-                  decoration:
-                      const InputDecoration(labelText: 'Phone (optional)'),
+                  decoration: InputDecoration(
+                    labelText: state._role == 'parent'
+                        ? 'Phone number *'
+                        : 'Phone (optional)',
+                    helperText: state._role == 'parent'
+                        ? 'Use the number your coach invited.'
+                        : null,
+                  ),
                   keyboardType: TextInputType.phone,
                   textInputAction: TextInputAction.next,
                   autofillHints: const [AutofillHints.telephoneNumber],

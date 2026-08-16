@@ -297,8 +297,7 @@ class AppState extends ChangeNotifier {
 
   Future<AthleteInvitationModel> inviteAthleteParent({
     required String athleteFullName,
-    required String athleteEmail,
-    required String parentEmail,
+    required String parentPhone,
     required String relationshipLabel,
     String? phone,
     String? hometown,
@@ -316,8 +315,7 @@ class AppState extends ChangeNotifier {
         teamId: activeTeam!.id,
         payload: {
           'athlete_full_name': athleteFullName,
-          'athlete_email': athleteEmail,
-          'parent_email': parentEmail,
+          'parent_phone': parentPhone,
           'relationship_label': relationshipLabel,
           'phone': phone,
           'hometown': hometown,

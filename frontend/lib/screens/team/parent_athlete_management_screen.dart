@@ -18,7 +18,6 @@ class ParentAthleteManagementScreen extends StatefulWidget {
 class _ParentAthleteManagementScreenState
     extends State<ParentAthleteManagementScreen> {
   final _fullName = TextEditingController();
-  final _email = TextEditingController();
   final _phone = TextEditingController();
   final _hometown = TextEditingController();
   final _graduationYear = TextEditingController();
@@ -44,7 +43,6 @@ class _ParentAthleteManagementScreenState
   @override
   void dispose() {
     _fullName.dispose();
-    _email.dispose();
     _phone.dispose();
     _hometown.dispose();
     _graduationYear.dispose();
@@ -147,7 +145,7 @@ class _ParentAthleteManagementScreenState
                 style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: AppSpacing.xs),
             const Text(
-              'Contact and roster details are editable. The athlete email stays fixed so account ownership remains clear.',
+              'Contact and roster details are editable. Athlete email is not required.',
             ),
             const SizedBox(height: AppSpacing.lg),
             LayoutBuilder(
@@ -160,7 +158,6 @@ class _ParentAthleteManagementScreenState
                   runSpacing: AppSpacing.md,
                   children: [
                     _field(_fullName, 'Full name', fieldWidth),
-                    _field(_email, 'Athlete email', fieldWidth, enabled: false),
                     _field(_phone, 'Phone', fieldWidth),
                     _field(_hometown, 'Hometown', fieldWidth),
                     _field(
@@ -226,7 +223,6 @@ class _ParentAthleteManagementScreenState
     if (profile == null || profile.userId == _loadedAthleteId) return;
     _loadedAthleteId = profile.userId;
     _fullName.text = profile.fullName;
-    _email.text = profile.email;
     _phone.text = profile.phone ?? '';
     _hometown.text = profile.hometown ?? '';
     _graduationYear.text = profile.graduationYear?.toString() ?? '';

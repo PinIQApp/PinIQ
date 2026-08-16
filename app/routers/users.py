@@ -35,6 +35,14 @@ def update_me(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    if payload.phone:
+        phone_owner = (
+            db.query(User)
+            .filter(User.phone == payload.phone, User.id != current_user.id)
+            .first()
+        )
+        if phone_owner:
+            raise HTTPException(status_code=400, detail="Phone number already registered")
     current_user.full_name = payload.full_name.strip()
     current_user.phone = payload.phone
     current_user.profile_image_url = payload.profile_image_url.strip() if payload.profile_image_url else None
