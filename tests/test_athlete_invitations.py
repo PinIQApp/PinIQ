@@ -16,11 +16,10 @@ def _team(db_session: Session) -> Team:
     return db_session.query(Team).filter(Team.id == coach.primary_team_id).first()
 
 
-def _invite_payload(*, parent_email: str = "guardian@example.com") -> dict[str, object]:
+def _invite_payload(*, parent_phone: str = "+15559876543") -> dict[str, object]:
     return {
         "athlete_full_name": "Jordan Rivera",
-        "athlete_email": "jordan.rivera@example.com",
-        "parent_email": parent_email,
+        "parent_phone": parent_phone,
         "relationship_label": "guardian",
         "phone": "+15551234567",
         "hometown": "Columbus, OH",
@@ -46,9 +45,15 @@ def test_coach_adds_athlete_and_sends_parent_invitation(
     body = response.json()
     assert body["status"] == "pending"
     assert body["athlete_full_name"] == "Jordan Rivera"
-    assert body["parent_email"] == "guardian@example.com"
+    assert body["athlete_email"] is None
+    assert body["parent_email"] is None
+    assert body["parent_phone"] == "+15559876543"
 
-    athlete = db_session.query(User).filter(User.email == "jordan.rivera@example.com").first()
+    athlete = (
+        db_session.query(User)
+        .filter(User.full_name == "Jordan Rivera", User.role == UserRole.athlete)
+        .first()
+    )
     assert athlete is not None
     assert athlete.role == UserRole.athlete
     membership = (
@@ -79,6 +84,7 @@ def test_matching_parent_accepts_and_can_manage_athlete(
         password_hash=get_password_hash("Password123"),
         full_name="Taylor Rivera",
         role=UserRole.parent,
+        phone="+15559876543",
     )
     db_session.add(parent)
     db_session.commit()

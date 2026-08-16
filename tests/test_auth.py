@@ -167,3 +167,17 @@ def test_register_rejects_invalid_phone_number(client: TestClient):
     )
 
     assert response.status_code == 422
+
+
+def test_parent_registration_requires_invited_phone_number(client: TestClient):
+    response = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "parent-without-phone@example.com",
+            "password": "Password123",
+            "full_name": "Parent Without Phone",
+            "role": "parent",
+        },
+    )
+
+    assert response.status_code == 422

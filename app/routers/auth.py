@@ -75,6 +75,8 @@ def register(
     existing = db.query(User).filter(User.email == payload.email.lower()).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
+    if payload.phone and db.query(User).filter(User.phone == payload.phone).first():
+        raise HTTPException(status_code=400, detail="Phone number already registered")
     validate_password_strength(payload.password)
 
     user = User(

@@ -238,7 +238,8 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
     final query = _searchController.text.trim().toLowerCase();
     if (query.isEmpty) return true;
     return member.user.fullName.toLowerCase().contains(query) ||
-        member.user.email.toLowerCase().contains(query) ||
+        (member.isStaff && member.user.email.toLowerCase().contains(query)) ||
+        (member.user.phone?.toLowerCase().contains(query) ?? false) ||
         member.roleLabel.toLowerCase().contains(query);
   }
 
@@ -264,7 +265,7 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          '${invitation.athleteFullName} was added. The parent invitation was sent to ${invitation.parentEmail}.',
+          '${invitation.athleteFullName} was added. The parent invitation is linked to ${invitation.parentContact}.',
         ),
       ),
     );
@@ -280,9 +281,8 @@ class _AddAthleteDialog extends StatefulWidget {
 
 class _AddAthleteDialogState extends State<_AddAthleteDialog> {
   final _athleteName = TextEditingController();
-  final _athleteEmail = TextEditingController();
-  final _parentEmail = TextEditingController();
-  final _phone = TextEditingController();
+  final _parentPhone = TextEditingController();
+  final _athletePhone = TextEditingController();
   final _hometown = TextEditingController();
   final _graduationYear = TextEditingController();
   final _weightClass = TextEditingController();
@@ -292,9 +292,8 @@ class _AddAthleteDialogState extends State<_AddAthleteDialog> {
   @override
   void dispose() {
     _athleteName.dispose();
-    _athleteEmail.dispose();
-    _parentEmail.dispose();
-    _phone.dispose();
+    _parentPhone.dispose();
+    _athletePhone.dispose();
     _hometown.dispose();
     _graduationYear.dispose();
     _weightClass.dispose();
@@ -314,7 +313,7 @@ class _AddAthleteDialogState extends State<_AddAthleteDialog> {
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
-                'The athlete is added to the roster now. The parent receives management access only after signing in with the invited email and accepting.',
+                'The athlete is added to the roster now. The parent receives management access only after signing in with an account that uses the invited phone number and accepting.',
               ),
               const SizedBox(height: AppSpacing.lg),
               TextField(
@@ -325,15 +324,10 @@ class _AddAthleteDialogState extends State<_AddAthleteDialog> {
               ),
               const SizedBox(height: AppSpacing.sm),
               TextField(
-                controller: _athleteEmail,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(labelText: 'Athlete email *'),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              TextField(
-                controller: _parentEmail,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(labelText: 'Parent email *'),
+                controller: _parentPhone,
+                keyboardType: TextInputType.phone,
+                decoration:
+                    const InputDecoration(labelText: 'Parent phone number *'),
               ),
               const SizedBox(height: AppSpacing.sm),
               Row(
@@ -348,7 +342,7 @@ class _AddAthleteDialogState extends State<_AddAthleteDialog> {
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: TextField(
-                      controller: _phone,
+                      controller: _athletePhone,
                       keyboardType: TextInputType.phone,
                       decoration:
                           const InputDecoration(labelText: 'Athlete phone'),
@@ -417,10 +411,9 @@ class _AddAthleteDialogState extends State<_AddAthleteDialog> {
     final graduationYear =
         graduationText.isEmpty ? null : int.tryParse(graduationText);
     if (_athleteName.text.trim().length < 2 ||
-        !_looksLikeEmail(_athleteEmail.text) ||
-        !_looksLikeEmail(_parentEmail.text)) {
-      setState(() => _error =
-          'Enter the athlete name and valid athlete and parent emails.');
+        !_looksLikePhone(_parentPhone.text)) {
+      setState(() =>
+          _error = 'Enter the athlete name and a valid parent phone number.');
       return;
     }
     if (graduationText.isNotEmpty && graduationYear == null) {
@@ -431,12 +424,11 @@ class _AddAthleteDialogState extends State<_AddAthleteDialog> {
       setState(() => _error = null);
       final invitation = await context.read<AppState>().inviteAthleteParent(
             athleteFullName: _athleteName.text.trim(),
-            athleteEmail: _athleteEmail.text.trim(),
-            parentEmail: _parentEmail.text.trim(),
+            parentPhone: _parentPhone.text.trim(),
             relationshipLabel: _relationship.text.trim().isEmpty
                 ? 'parent'
                 : _relationship.text.trim(),
-            phone: _nullable(_phone.text),
+            phone: _nullable(_athletePhone.text),
             hometown: _nullable(_hometown.text),
             graduationYear: graduationYear,
             weightClass: _nullable(_weightClass.text),
@@ -447,9 +439,10 @@ class _AddAthleteDialogState extends State<_AddAthleteDialog> {
     }
   }
 
-  bool _looksLikeEmail(String value) {
-    final trimmed = value.trim();
-    return trimmed.contains('@') && trimmed.contains('.');
+  bool _looksLikePhone(String value) {
+    final digits = value.replaceAll(RegExp(r'\D'), '');
+    return digits.length == 10 ||
+        (digits.length == 11 && digits.startsWith('1'));
   }
 
   String? _nullable(String value) {
@@ -492,7 +485,7 @@ class _AthleteInvitationTile extends StatelessWidget {
                     style: AppTextStyles.bodyStrong),
                 const SizedBox(height: AppSpacing.xxs),
                 Text(
-                  '${invitation.parentEmail} • ${invitation.relationshipLabel}',
+                  '${invitation.parentContact} • ${invitation.relationshipLabel}',
                   style: AppTextStyles.caption,
                 ),
               ],
@@ -845,7 +838,12 @@ class _MemberTile extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: AppSpacing.xxs),
-                Text(member.user.email, style: AppTextStyles.caption),
+                Text(
+                  member.isStaff
+                      ? member.user.email
+                      : member.user.phone ?? 'No athlete phone added',
+                  style: AppTextStyles.caption,
+                ),
                 const SizedBox(height: AppSpacing.xs),
                 Wrap(
                   spacing: AppSpacing.xs,

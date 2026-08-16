@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.config import settings
@@ -21,6 +22,8 @@ from app.routers.deps import get_current_user
 from app.schemas.team import AthleteInvitationCreate, AthleteInvitationRead
 from app.services.email_tasks import send_athlete_parent_invitation_email
 from app.services.permissions import require_team_manager
+from app.services.phone_numbers import normalize_phone_number
+from app.services.sms_alerts import send_sms_message
 
 
 router = APIRouter(tags=["athlete-invitations"])
@@ -54,14 +57,17 @@ def _load_invitation(db: Session, invitation_id: int) -> AthleteParentInvitation
 
 
 def _to_read(invitation: AthleteParentInvitation) -> AthleteInvitationRead:
+    athlete_email = invitation.athlete_user.email
+    parent_email = invitation.parent_email
     return AthleteInvitationRead(
         id=invitation.id,
         team_id=invitation.team_id,
         team_name=invitation.team.name,
         athlete_user_id=invitation.athlete_user_id,
         athlete_full_name=invitation.athlete_user.full_name,
-        athlete_email=invitation.athlete_user.email,
-        parent_email=invitation.parent_email,
+        athlete_email=None if _is_internal_email(athlete_email) else athlete_email,
+        parent_email=None if _is_internal_email(parent_email) else parent_email,
+        parent_phone=invitation.parent_phone,
         relationship_label=invitation.relationship_label,
         status=invitation.status,
         invited_by_user_id=invitation.invited_by_user_id,
@@ -73,6 +79,31 @@ def _to_read(invitation: AthleteParentInvitation) -> AthleteInvitationRead:
 
 def _normalized(value: str) -> str:
     return value.strip().lower()
+
+
+def _is_internal_email(value: str) -> bool:
+    return value.endswith("@athletes.piniq.invalid") or value.endswith("@invites.piniq.invalid")
+
+
+def _athlete_placeholder_email() -> str:
+    return f"athlete-{generate_opaque_token().lower()}@athletes.piniq.invalid"
+
+
+def _phone_invitation_email(phone: str) -> str:
+    return f"phone-{phone.lstrip('+')}@invites.piniq.invalid"
+
+
+def _phone_for_user(user: User) -> str | None:
+    try:
+        return normalize_phone_number(user.phone)
+    except ValueError:
+        return None
+
+
+def _invitation_belongs_to_parent(invitation: AthleteParentInvitation, parent: User) -> bool:
+    if invitation.parent_phone:
+        return _phone_for_user(parent) == invitation.parent_phone
+    return _normalized(parent.email) == invitation.parent_email
 
 
 @router.post(
@@ -91,22 +122,40 @@ def invite_athlete_parent(
     membership = next((item for item in team.memberships if item.user_id == current_user.id), None)
     require_team_manager(current_user, team, membership)
 
-    athlete_email = _normalized(str(payload.athlete_email))
-    parent_email = _normalized(str(payload.parent_email))
-    if athlete_email == parent_email:
+    athlete_email = _normalized(str(payload.athlete_email)) if payload.athlete_email else None
+    parent_email = _normalized(str(payload.parent_email)) if payload.parent_email else None
+    parent_phone = payload.parent_phone
+    if athlete_email and parent_email and athlete_email == parent_email:
         raise HTTPException(status_code=400, detail="Athlete and parent must use different email addresses")
 
-    existing_parent = db.query(User).filter(User.email == parent_email).first()
+    existing_parent = None
+    if parent_phone:
+        existing_parent = db.query(User).filter(User.phone == parent_phone).first()
+    elif parent_email:
+        existing_parent = db.query(User).filter(User.email == parent_email).first()
     if existing_parent and existing_parent.role != UserRole.parent:
-        raise HTTPException(status_code=400, detail="Parent email belongs to a non-parent account")
+        raise HTTPException(status_code=400, detail="Parent contact belongs to a non-parent account")
 
-    athlete = db.query(User).filter(User.email == athlete_email).first()
+    athlete = None
+    if athlete_email:
+        athlete = db.query(User).filter(User.email == athlete_email).first()
+    else:
+        athlete = (
+            db.query(User)
+            .join(TeamMember, TeamMember.user_id == User.id)
+            .filter(
+                TeamMember.team_id == team_id,
+                User.role == UserRole.athlete,
+                func.lower(User.full_name) == payload.athlete_full_name.strip().lower(),
+            )
+            .first()
+        )
     if athlete and athlete.role != UserRole.athlete:
         raise HTTPException(status_code=400, detail="Athlete email belongs to a non-athlete account")
 
     if athlete is None:
         athlete = User(
-            email=athlete_email,
+            email=athlete_email or _athlete_placeholder_email(),
             password_hash=get_password_hash(generate_opaque_token()),
             full_name=payload.athlete_full_name.strip(),
             role=UserRole.athlete,
@@ -139,15 +188,15 @@ def invite_athlete_parent(
     if athlete.primary_team_id is None:
         athlete.primary_team_id = team_id
 
-    invitation = (
-        db.query(AthleteParentInvitation)
-        .filter(
-            AthleteParentInvitation.team_id == team_id,
-            AthleteParentInvitation.athlete_user_id == athlete.id,
-            AthleteParentInvitation.parent_email == parent_email,
-        )
-        .first()
+    invitation_query = db.query(AthleteParentInvitation).filter(
+        AthleteParentInvitation.team_id == team_id,
+        AthleteParentInvitation.athlete_user_id == athlete.id,
     )
+    if parent_phone:
+        invitation_query = invitation_query.filter(AthleteParentInvitation.parent_phone == parent_phone)
+    else:
+        invitation_query = invitation_query.filter(AthleteParentInvitation.parent_email == parent_email)
+    invitation = invitation_query.first()
     if invitation and invitation.status == AthleteInvitationStatus.accepted:
         raise HTTPException(status_code=400, detail="This parent already manages the athlete")
 
@@ -156,7 +205,8 @@ def invite_athlete_parent(
         invitation = AthleteParentInvitation(
             team_id=team_id,
             athlete_user_id=athlete.id,
-            parent_email=parent_email,
+            parent_email=parent_email or _phone_invitation_email(parent_phone),
+            parent_phone=parent_phone,
             relationship_label=payload.relationship_label.strip(),
             status=AthleteInvitationStatus.pending,
             invited_by_user_id=current_user.id,
@@ -165,6 +215,8 @@ def invite_athlete_parent(
         db.add(invitation)
     else:
         invitation.relationship_label = payload.relationship_label.strip()
+        invitation.parent_email = parent_email or _phone_invitation_email(parent_phone)
+        invitation.parent_phone = parent_phone
         invitation.status = AthleteInvitationStatus.pending
         invitation.invited_by_user_id = current_user.id
         invitation.accepted_by_user_id = None
@@ -173,13 +225,26 @@ def invite_athlete_parent(
 
     db.commit()
     invitation = _load_invitation(db, invitation.id)
-    background_tasks.add_task(
-        send_athlete_parent_invitation_email,
-        email=parent_email,
-        team_name=team.name,
-        athlete_name=athlete.full_name,
-        frontend_origin=settings.frontend_origin,
-    )
+    if parent_phone:
+        background_tasks.add_task(
+            send_sms_message,
+            phone_number=parent_phone,
+            message=(
+                f"{team.name} invited you to manage {athlete.full_name} in Pin IQ. "
+                f"Open {settings.frontend_origin}, sign in to a parent account with this phone number, "
+                "and accept the invitation."
+            ),
+            team_id=team.id,
+            user_id=current_user.id,
+        )
+    else:
+        background_tasks.add_task(
+            send_athlete_parent_invitation_email,
+            email=parent_email,
+            team_name=team.name,
+            athlete_name=athlete.full_name,
+            frontend_origin=settings.frontend_origin,
+        )
     return _to_read(invitation)
 
 
@@ -215,6 +280,10 @@ def list_my_athlete_invitations(
 ):
     if current_user.role != UserRole.parent:
         return []
+    parent_phone = _phone_for_user(current_user)
+    contact_filters = [AthleteParentInvitation.parent_email == _normalized(current_user.email)]
+    if parent_phone:
+        contact_filters.append(AthleteParentInvitation.parent_phone == parent_phone)
     invitations = (
         db.query(AthleteParentInvitation)
         .options(
@@ -222,7 +291,7 @@ def list_my_athlete_invitations(
             joinedload(AthleteParentInvitation.athlete_user),
         )
         .filter(
-            AthleteParentInvitation.parent_email == _normalized(current_user.email),
+            or_(*contact_filters),
             AthleteParentInvitation.status == AthleteInvitationStatus.pending,
             AthleteParentInvitation.expires_at > datetime.utcnow(),
         )
@@ -239,7 +308,7 @@ def accept_athlete_invitation(
     current_user: User = Depends(get_current_user),
 ):
     invitation = _load_invitation(db, invitation_id)
-    if current_user.role != UserRole.parent or _normalized(current_user.email) != invitation.parent_email:
+    if current_user.role != UserRole.parent or not _invitation_belongs_to_parent(invitation, current_user):
         raise HTTPException(status_code=403, detail="This invitation belongs to a different parent")
     if invitation.status == AthleteInvitationStatus.accepted:
         if invitation.accepted_by_user_id == current_user.id:
@@ -311,7 +380,7 @@ def decline_athlete_invitation(
     current_user: User = Depends(get_current_user),
 ):
     invitation = _load_invitation(db, invitation_id)
-    if current_user.role != UserRole.parent or _normalized(current_user.email) != invitation.parent_email:
+    if current_user.role != UserRole.parent or not _invitation_belongs_to_parent(invitation, current_user):
         raise HTTPException(status_code=403, detail="This invitation belongs to a different parent")
     if invitation.status != AthleteInvitationStatus.pending:
         raise HTTPException(status_code=400, detail="Invitation is no longer available")

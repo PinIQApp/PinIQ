@@ -79,12 +79,19 @@ class AthleteParentInvitation(Base):
             "parent_email",
             name="uq_athlete_parent_invitation",
         ),
+        UniqueConstraint(
+            "team_id",
+            "athlete_user_id",
+            "parent_phone",
+            name="uq_athlete_parent_phone_invitation",
+        ),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     team_id: Mapped[int] = mapped_column(ForeignKey("teams.id"), nullable=False, index=True)
     athlete_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
     parent_email: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    parent_phone: Mapped[Optional[str]] = mapped_column(String(30), index=True)
     relationship_label: Mapped[str] = mapped_column(String(60), default="parent", nullable=False)
     status: Mapped[AthleteInvitationStatus] = mapped_column(
         SqlEnum(AthleteInvitationStatus),

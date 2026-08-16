@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
 from app.models.team import AthleteInvitationStatus, TeamMemberStatus
 from app.models.user import UserRole
@@ -113,8 +113,9 @@ class AthleteDetail(AthleteRosterProfile):
 
 class AthleteInvitationCreate(BaseModel):
     athlete_full_name: str = Field(min_length=2, max_length=120)
-    athlete_email: EmailStr
-    parent_email: EmailStr
+    athlete_email: EmailStr | None = None
+    parent_email: EmailStr | None = None
+    parent_phone: str | None = None
     relationship_label: str = Field(default="parent", min_length=2, max_length=60)
     phone: str | None = None
     hometown: str | None = Field(default=None, max_length=120)
@@ -122,6 +123,13 @@ class AthleteInvitationCreate(BaseModel):
     weight_class: str | None = Field(default=None, max_length=30)
 
     _normalize_phone = phone_number_field_validator("phone")
+    _normalize_parent_phone = phone_number_field_validator("parent_phone")
+
+    @model_validator(mode="after")
+    def require_parent_contact(self):
+        if not self.parent_phone and not self.parent_email:
+            raise ValueError("Parent phone number is required")
+        return self
 
 
 class AthleteInvitationRead(BaseModel):
@@ -130,8 +138,9 @@ class AthleteInvitationRead(BaseModel):
     team_name: str
     athlete_user_id: int
     athlete_full_name: str
-    athlete_email: EmailStr
-    parent_email: EmailStr
+    athlete_email: EmailStr | None
+    parent_email: EmailStr | None
+    parent_phone: str | None
     relationship_label: str
     status: AthleteInvitationStatus
     invited_by_user_id: int
